@@ -1,5 +1,6 @@
 package k19g.quiz.service;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +14,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import k19g.quiz.entity.Level;
 import k19g.quiz.entity.Quiz;
@@ -32,6 +37,9 @@ public class QuizService {
 
     @Autowired
     private QuizRepository quizRepository;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     /**
      * Retrieves all distinct quiz categories from the quiz repository.
@@ -379,6 +387,11 @@ public class QuizService {
         return options;
     }
     
- 
+    public void saveJSONQuiz(MultipartFile file) throws IOException {
+        // Convert MultipartFile to InputStream and read it as JSON
+        List<Quiz> quizzes = objectMapper.readValue(file.getInputStream(), new TypeReference<List<Quiz>>() {});
+        // Save all parsed Quiz objects to the database
+        quizRepository.saveAll(quizzes);
+    }
 
 }

@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>403 Forbidden</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/MY-K19G/My-assets/refs/heads/main/java_quiz_icon.jpg" type="image/jpg">
+	<link rel="icon" href="/assets/img/java_quiz_icon.jpg" type="image/jpg">
     <style>
         body, html {
             height: 100%;

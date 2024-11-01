@@ -31,6 +31,9 @@ public class UserAccountController {
 	
     private static final Logger logger = LoggerFactory.getLogger(UserAccountController.class);
 	
+    // Flag to control access to the /register endpoint
+    private boolean isRegisterEnabled = true; 
+    
 	/**
 	 * Handles the HTTP GET request for displaying the admin login page.
 	 * 
@@ -63,7 +66,7 @@ public class UserAccountController {
         logger.info("Accessing the admin registration page.");
 
 	    // Return the name of the view to render the registration page
-	    return "quizAdminRegister";
+	    return isRegisterEnabled ? "quizAdminRegister" : null;
 	}
 
 	
@@ -129,4 +132,10 @@ public class UserAccountController {
 	    return "redirect:/create";
 	}
 	
+	/**
+     * Toggles the access to the /register endpoint.
+     */
+    public void removeRegisterMatcher(boolean input) {
+        isRegisterEnabled = input; // Set the flag to disable /register access
+    }
 }

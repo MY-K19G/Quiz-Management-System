@@ -6,12 +6,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpSession;
+import k19g.quiz.configuration.WebSecurityConfig;
 import k19g.quiz.entity.Quiz;
 import k19g.quiz.service.QuizService;
 import k19g.quiz.utils.MiscellaneousUtils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,9 +46,13 @@ public class QuizRestController {
 
     private final QuizService quizService;
 
+	@Autowired
+	private final UserAccountController userAccountController;
+	
     @Autowired
-    public QuizRestController(QuizService quizService) {
+    public QuizRestController(QuizService quizService, UserAccountController userAccountController) {
         this.quizService = quizService;
+        this.userAccountController = userAccountController;
     }
 
     /**
@@ -160,6 +167,59 @@ public class QuizRestController {
         logger.info("Attempted answers processed successfully");
     }
 
+    /**
+     * Uploads a JSON file containing quiz data and stores it in the database.
+     *
+     * @param file the JSON file containing quiz data
+     * @return ResponseEntity with a success message or an error message
+     */
+    @PostMapping("/uploadJson")
+    public ResponseEntity<String> uploadQuizData(@RequestParam("jsonfile") MultipartFile file) {
+        logger.info("Received request to upload quiz data from file: {}", file.getOriginalFilename());
+
+        try {
+            quizService.saveJSONQuiz(file); // Pass the file to the service for processing
+            logger.info("Successfully uploaded quiz data from file: {}", file.getOriginalFilename());
+            return ResponseEntity.ok("Quiz data uploaded and stored successfully.");
+        } catch (IOException e) {
+            logger.error("Failed to upload quiz data from file: {}. Error: {}", file.getOriginalFilename(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                 .body("Failed to upload quiz data: ");
+        }
+    }
+    
+    /**
+     * Validates the input and removes the /register endpoint from controller if valid.
+     *
+     * @param input the input to validate
+     * @return response message indicating the result of the validation
+     */
+    @PostMapping("/validateRegister")
+    public ResponseEntity<String> validateRegister(@RequestBody Map<String, String> request) {
+    	 String secretText = request.get("secret_text");
+    	 
+        logger.info("Received input for validation: {}", secretText);
+        
+        if(secretText.equals("disableRegisterEndpoint")) {
+        // Remove /register from security configuration
+        	userAccountController.removeRegisterMatcher(false);
+	        logger.info("remove validation: /register endpoint has been disable from controller.");
+	        return ResponseEntity.ok("Access to /register has been removed.");
+        }
+        
+        else if(secretText.equals("enableRegisterEndpoint")) {
+        	userAccountController.removeRegisterMatcher(true);
+        	logger.info("add validation: /register endpoint has been enable from controller .");
+        	return ResponseEntity.ok("Access to /register has been added.");
+        }
+        
+        else {
+        	logger.info("wrong validation: /register endpoint can not be removed because wrong validation text from controller.");
+        	return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Invalid validation text. Access denied.");
+        }
+        
+    }
 
 }
 

@@ -294,7 +294,6 @@
 			<select id="categoryFilter">
 				<option value="">All Categories</option>
 				<% List<String> allCategories = (List<String>) request.getAttribute("allCategories");
-						System.err.print(allCategories);
 						if (allCategories != null) {
 						for (String category : allCategories) {
 						%>
@@ -321,7 +320,6 @@
 			<select id="levelFilter">
 				<option value="">All Levels</option>
 				<% List<Level> allLevels = (List<Level>) request.getAttribute("allLevels");
-						System.err.println(allLevels);
 						if (allLevels != null) {
 						for (Level level : allLevels) {
 

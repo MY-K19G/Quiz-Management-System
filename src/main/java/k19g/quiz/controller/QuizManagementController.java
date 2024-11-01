@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 import jakarta.servlet.http.HttpSession;
+import k19g.quiz.configuration.WebSecurityConfig;
 import k19g.quiz.entity.Quiz;
 import k19g.quiz.service.QuizService;
 
@@ -37,7 +38,6 @@ public class QuizManagementController {
 	@Autowired
 	private ModelAndView mav;
 
-	
 	/**
      * Displays the page for creating a quiz.
      * 
@@ -266,5 +266,27 @@ public class QuizManagementController {
 	    // Set the view name for the delete quiz page
 	    mav.setViewName("deleteQuiz");
 	    return mav;
+	}
+	
+	/**
+     * Displays the JSON upload page for quiz data.
+     *
+     * @return the name of the view to render
+     */
+	@GetMapping("/upload")
+	public String showJSON_UploadPage() {
+        logger.info("Accessed the JSON upload page.");
+		return "uploadQuizJSON";
+	}
+	
+	/**
+     * Displays the validate Register page for quiz data.
+     *
+     * @return the name of the view to render
+     */
+	@GetMapping("/validateRegister")
+	public String showValidateRegister() {
+        logger.info("Accessed the validate Register page.");
+		return "validateRegister";
 	}
 }
