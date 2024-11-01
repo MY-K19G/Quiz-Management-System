@@ -49,8 +49,8 @@ public class WebSecurityConfig {
     	 logger.info("Configuring security filter chain...");
 
         http.authorizeHttpRequests(authz -> authz
-                // Permitting access to H2 console, registration, and login pages without authentication
-                .requestMatchers("/h2-console/**", "/register", "/view/quizAdminRegister.jsp", "/login", "/view/quizAdminLogin.jsp", "/perform_register").permitAll()
+                // Permitting access to H2 console, registration, and login pages without authentication 
+                .requestMatchers("/h2-console/**","/register", "/view/quizAdminRegister.jsp", "/login", "/view/quizAdminLogin.jsp", "/perform_register").permitAll()
 
                 // Allow public access to home, quiz assessment, participant, and result pages
                 .requestMatchers("/", "/view/app/quizAssessmentDetails.jsp", "/quiz", "/view/app/quizParticipantPage.jsp", "/result", "/view/app/quizResultsDashboard.jsp",  "/api/submit_quiz", "/processQuizSetup").permitAll()

@@ -1,6 +1,5 @@
 <%
 boolean quiz_access=(boolean)session.getAttribute("quiz_access");
-System.out.println(quiz_access);
 if(quiz_access){ 
 quiz_access=false;%>
 <%@page import="k19g.quiz.entity.Quiz"%>

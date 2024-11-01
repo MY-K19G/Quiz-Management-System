@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>k19g.Java.quiz</groupId>
 	<artifactId>Quiz-Management-System</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<packaging>war</packaging>
 	<name>Quiz-Management-System</name>
 	<description>Java Quiz website</description>
@@ -29,7 +29,7 @@
 		<url />
 	</scm>
 	<properties>
-		<java.version>22</java.version>
+		<java.version>17</java.version>
 	</properties>
 	<dependencies>
 		<dependency>
