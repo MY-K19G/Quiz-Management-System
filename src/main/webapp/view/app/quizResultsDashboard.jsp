@@ -1,4 +1,5 @@
-<%@page import="k19g.quiz.entity.Quiz"%>
+<%@ include file="../loader.jsp" %>
+<%@page import="k19g.quiz.DTO.QuizDTO"%>
 <%@page import="java.util.List"%>
 <%@ page isELIgnored="true"%>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
@@ -329,9 +330,9 @@
 			Integer totalWrongAns = (Integer)request.getAttribute("totalWrongAns");
 			String selectedTime = (String)request.getAttribute("selectedTime");
 			String submitTime = (String)session.getAttribute("submissionTime");
-		List < Quiz > generatedQuiz=(List < Quiz >)session.getAttribute("generatedQuiz");
-		List < List < Integer >> correctAnsInt=(List < List < Integer >>)session.getAttribute("correctAnsInt"); //correct ans int
-		List < List < Integer >> attemptQuizAnswer=(List < List < Integer >>)session.getAttribute("attemptQuizAnswer"); //user answer
+			List < QuizDTO > generatedQuiz=(List < QuizDTO >)session.getAttribute("generatedQuiz");
+			List < List < Integer >> correctAnsInt=(List < List < Integer >>)session.getAttribute("correctAnsInt"); //correct ans int
+			List < List < Integer >> attemptQuizAnswer=(List < List < Integer >>)session.getAttribute("attemptQuizAnswer"); //user answer
 			%>
 
     // dynamically render for user and quiz
@@ -352,7 +353,7 @@
 		const quizData = [
     <%
         for (int i = 0; i < generatedQuiz.size(); i++) {
-            Quiz quiz = generatedQuiz.get(i);
+        	QuizDTO quiz = generatedQuiz.get(i);
             String questionCode = quiz.getType().equalsIgnoreCase("Programming") ? "code: `" + quiz.getQuestionCode() + "`, " : "";
             String userAnswer = attemptQuizAnswer.get(i) == null ? "[]" : attemptQuizAnswer.get(i).toString();
     %>

@@ -9,8 +9,6 @@ import jakarta.persistence.Table;
 
 /**
  * Entity class representing a user in the quiz application.
- * This class is mapped to the "quiz_user" table in the database and contains fields
- * related to the user's email, password, and role.
  * 
  * Author: K19G
  */
@@ -20,52 +18,54 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer userId; // Unique identifier for the user
+    private Integer userId; 
 
     @Column(unique = true, nullable = false, name = "user_email")
-    private String userEmail; // User's email address, must be unique
+    private String userEmail; 
 
     @Column(nullable = true, name = "user_password")
-    private String userPassword; // User's password, stored securely
+    private String userPassword; 
 
     @Column(nullable = true, name = "user_role")
-    private String userRole; // Role of the user (e.g., admin, user)
+    private String userRole; 
 
-    public Integer getUserId() {
-        return userId;
-    }
+	public Integer getUserId() {
+		return userId;
+	}
 
-    public void setUserId(Integer userId) {
-        this.userId = userId;
-    }
+	public void setUserId(Integer userId) {
+		this.userId = userId;
+	}
 
-    public String getUserEmail() {
-        return userEmail;
-    }
+	public String getUserEmail() {
+		return userEmail;
+	}
 
-    public void setUserEmail(String userEmail) {
-        this.userEmail = userEmail;
-    }
+	public void setUserEmail(String userEmail) {
+		this.userEmail = userEmail;
+	}
 
-    public String getUserPassword() {
-        return userPassword;
-    }
+	public String getUserPassword() {
+		return userPassword;
+	}
 
-    public void setUserPassword(String userPassword) {
-        this.userPassword = userPassword;
-    }
+	public void setUserPassword(String userPassword) {
+		this.userPassword = userPassword;
+	}
 
-    public String getUserRole() {
-        return userRole;
-    }
+	public String getUserRole() {
+		return userRole;
+	}
 
-    public void setUserRole(String userRole) {
-        this.userRole = userRole;
-    }
+	public void setUserRole(String userRole) {
+		this.userRole = userRole;
+	}
 
-    @Override
-    public String toString() {
-        return "User [userId=" + userId + ", userEmail=" + userEmail + 
-               ", userPassword=" + userPassword + ", userRole=" + userRole + "]";
-    }
+	@Override
+	public String toString() {
+		return "User [userId=" + userId + ", userEmail=" + userEmail + ", userPassword=" + userPassword + ", userRole="
+				+ userRole + "]";
+	}
+
+    
 }

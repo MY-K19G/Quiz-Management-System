@@ -1,15 +1,11 @@
 package k19g.quiz.configuration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.servlet.ModelAndView;
 
-import k19g.quiz.service.CustomUserDetailsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * <h2>Configuration Class for Defining Application Beans</h2>
@@ -19,9 +15,6 @@ import k19g.quiz.service.CustomUserDetailsService;
  */
 @Configuration
 public class BeanConfiguration {
-	
-	@Autowired
-	CustomUserDetailsService customUserDetailsService; 
 	
     private static final Logger logger = LoggerFactory.getLogger(BeanConfiguration.class);
 
@@ -40,21 +33,4 @@ public class BeanConfiguration {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * Creates a prototype-scoped bean of ModelAndView.
-     * <p>
-     * This method returns a new instance of <code>ModelAndView each</code> time it is called,
-     * allowing for unique configurations for each request or service.
-     * ModelAndView is used to hold model data and view name for rendering responses.
-     * </p>
-     * 
-     * @return a new instance of <code>ModelAndView</code>
-     */
-    @Bean
-    @Scope("prototype")
-    public ModelAndView getModelAndView() {
-    	 logger.info("Creating ModelAndView bean...");
-        return new ModelAndView();
-    }
-    
 }

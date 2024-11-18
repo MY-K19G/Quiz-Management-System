@@ -13,18 +13,24 @@ import k19g.quiz.repository.UserRepository;
  * Service class for user authentication.
  * This class handles the authentication logic for users in the system.
  * 
- * @author K19G
+ * <p><b>Author:</b> K19G</p>
  */
 @Service
 public class UserAuthenticationService {
 
+	private static final Logger logger = LoggerFactory.getLogger(UserAuthenticationService.class);
+    
+    private final UserRepository userRepository;
+    
+    private final BCryptPasswordEncoder passwordEncoder;
+    
     @Autowired
-    private UserRepository userRepository;
+    public UserAuthenticationService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+		super();
+		this.userRepository = userRepository;
+		this.passwordEncoder = passwordEncoder;
+	}
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    private static final Logger logger = LoggerFactory.getLogger(UserAuthenticationService.class);
 
     /**
      * Authenticates a user based on their email and password.
@@ -37,10 +43,9 @@ public class UserAuthenticationService {
         User user = userRepository.findByuserEmail(userEmail);
         if (user == null) {
             logger.warn("Authentication failed: User not found with email: {}", userEmail);
-            return false; // User not found
+            return false; 
         }
         
-        // Compare the raw password with the stored hashed password
         boolean isAuthenticated = passwordEncoder.matches(rawPassword, user.getUserPassword());
         
         if (isAuthenticated) {

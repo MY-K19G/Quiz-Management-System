@@ -1,9 +1,11 @@
+<%@ include file="deleteLoader.jsp" %>
+<%@ include file="loader.jsp" %>
 <%@page import="k19g.quiz.entity.Level"%>
 <%@ page isELIgnored="true" %>
-<!DOCTYPE html>
 <%@page import="java.util.List"%>
 <%@page import="k19g.quiz.entity.Quiz"%>
 
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -313,6 +315,7 @@
 </head>
 
 <body>
+
 	<div class="hamburger" onclick="toggleSidebar()">&#9776;</div>
 <div class="navbar">
     <h2>Quiz Management System</h2>
@@ -499,11 +502,11 @@
 
 		// Function to delete a quiz question
 		function deleteQuestion(questionId, event) {
+			showDeleteLoader();
 			event.stopPropagation();  
 			if (confirm("Are you sure you want to delete this question?")) {
 
-				console.log(questionId);
-				fetch(`http://localhost:8083/api/delete-quiz/${questionId}`, {
+				fetch(`/api/delete-quiz/${questionId}`, {
 					method: 'DELETE',
 					headers: {
 						'Content-Type': 'application/json',
@@ -527,7 +530,10 @@
 					.catch(error => {
 						console.error('Error:', error);
 						alert('Failed to delete the question.'); // Error message
-					});
+					})
+					.finally(() => {
+			            hideDeleteLoader(); // Hide loader after the API call completes (success or error)
+			        });
 			}
 		}
 

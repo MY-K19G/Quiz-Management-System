@@ -1,3 +1,4 @@
+<%@ include file="loader.jsp" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -8,13 +9,39 @@
     <title>Remove /register Access</title>
     <link rel="icon" href="/assets/img/java_quiz_icon.jpg" type="image/jpg">
     <style>
-        /* Basic styling for the form */
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .form-container { max-width: 400px; margin: 0 auto; }
-        .input-field, .submit-button { width: 100%; padding: 10px; margin: 10px 0; }
-        .message { padding: 10px; margin: 10px 0; text-align: center; }
-        .success { color: green; }
-        .error { color: red; }
+	 body {
+	    font-family: Arial, sans-serif;
+	    margin: 0;
+	    padding: 20px;
+	}
+	
+	.form-container {
+	    max-width: 400px;
+	    margin: 0 auto;
+	}
+	
+	.input-field,
+	.submit-button {
+	    width: 100%;
+	    padding: 10px;
+	    margin: 10px 0;
+	    cursor: pointer;
+	}
+	
+	.message {
+	    padding: 10px;
+	    margin: 10px 0;
+	    text-align: center;
+	}
+	
+	.success {
+	    color: green;
+	}
+	
+	.error {
+	    color: red;
+	}
+
     </style>
 </head>
 <body>
@@ -31,7 +58,8 @@
 
 <script>
 		document.getElementById('removeRegisterForm').addEventListener('submit', async (event) => {
-		    event.preventDefault();
+			showLoader();
+			event.preventDefault();
 		    
 		    const inputField = document.getElementById('inputValidation');
 		    const messageDiv = document.getElementById('message');
@@ -47,7 +75,7 @@
 		        const response = await fetch('/api/validateRegister', {
 		            method: 'POST',
 		            headers: { 'Content-Type': 'application/json' },
-		            body: JSON.stringify({ secret_text: secretText })  // Updated to match backend parameter
+		            body: JSON.stringify({ secret_text: secretText })  
 		        });
 		        
 		        if (response.ok) {
@@ -62,6 +90,9 @@
 		    } catch (error) {
 		        messageDiv.textContent = "Error: " + error.message;
 		        messageDiv.className = "message error";
+		    }
+			 finally {
+		        hideLoader(); 
 		    }
 		});
 

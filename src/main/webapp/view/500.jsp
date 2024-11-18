@@ -1,3 +1,4 @@
+<%@ include file="loader.jsp" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -17,15 +18,24 @@
             color: white;
             text-align: center;
         }
+         pre {
+            color: #f8f8f2; 
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+        }
         .container {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            font-size: 2em;
         }
         .error-code {
             font-size: 10rem;
             font-weight: bold;
+            margin-top: 5rem;
         }
         .message {
             font-size: 1.5rem;
@@ -44,12 +54,23 @@
         a:hover {
             background-color: #3d9d66;
         }
+        
     </style>
 </head>
 <body>
     <div class="container">
         <div class="error-code">500</div>
-        <div class="message">Sorry! Something went wrong on our end.</div>
+        <pre class="message">
+         <%
+                String errorMessage = (String) request.getAttribute("errorMessage");
+                
+                if (errorMessage != null && !errorMessage.isEmpty()) {
+                    out.print(errorMessage);
+                } else {
+                    out.print("An unknown error has occurred. Please try again later.");
+                }
+            %>
+            </pre>
         <div class="home-button">
 	     <a href="/">Go to Homepage</a>
         </div>

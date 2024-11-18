@@ -1,6 +1,7 @@
 package k19g.quiz.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -10,18 +11,32 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import k19g.quiz.DTO.QuizDTO;
 import k19g.quiz.entity.Level;
 import k19g.quiz.entity.Quiz;
+import k19g.quiz.exception.LevelNotException;
+import k19g.quiz.exception.QuizCategoriesNotFoundException;
+import k19g.quiz.exception.QuizTitlesNotFoundException;
+import k19g.quiz.exception.QuizTypesNotFoundException;
+import k19g.quiz.exception.QuizzesNotFoundException;
+import k19g.quiz.exception.QuizDeletionException;
+import k19g.quiz.exception.QuizIdInvalidException;
+import k19g.quiz.exception.QuizNotFoundException;
 import k19g.quiz.repository.QuizRepository;
+import k19g.quiz.utils.MiscellaneousUtils;
 
 /**
  * <p>Service class for managing quiz-related operations.
@@ -30,281 +45,248 @@ import k19g.quiz.repository.QuizRepository;
  * 
  * <p><b>Author:</b> K19G</p>
  */
+@Transactional
 @Service
 public class QuizService {
 
-    private static final Logger logger = LoggerFactory.getLogger(QuizService.class);
+	private static final Logger logger= LoggerFactory.getLogger(QuizService.class);
+	private final QuizRepository quizRepository;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    private QuizRepository quizRepository;
-    
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    /**
-     * Retrieves all distinct quiz categories from the quiz repository.
-     * 
-     * This method fetches the unique categories of quizzes stored in the repository.
-     * It logs the action and ensures that valid data is returned.
-     * 
-     * @return a list of distinct quiz categories
-     * @throws IllegalStateException if no quiz categories are found in the repository
-     */
-    public List<String> getAllCategories() {
-        // Log the action of fetching distinct quiz categories
-        logger.info("Fetching all distinct quiz categories.");
-
-        // Fetch all distinct quiz categories from the repository
-        List<String> quizCategories = quizRepository.findDistinctCategoryBy();
-
-        // Validate that the list of categories is not empty or null
-        if (quizCategories == null || quizCategories.isEmpty()) {
-            throw new IllegalStateException("No quiz categories found in the repository.");
-        }
-
-        // Return the list of distinct quiz categories
-        return quizCategories;
+    public QuizService(QuizRepository quizRepository, ObjectMapper objectMapper) {
+        this.quizRepository = quizRepository;
+        this.objectMapper = objectMapper;
     }
 
 
-    
-    
-    
+	/**
+     * Retrieves all distinct quiz categories from the quiz repository.
+     * 
+     * @return a list of distinct quiz categories
+     * @throws QuizCategoriesNotFoundException if no quiz categories are found in the repository
+     */
+    @Cacheable(value="quizCategories")
+    public List<String> getAllCategories() {
+        
+    	logger.info("Fetching all distinct quiz categories.");
+
+        List<String> quizCategories = quizRepository.findDistinctCategoryBy();
+
+        MiscellaneousUtils.checkIfListIsEmpty(quizCategories, new QuizCategoriesNotFoundException());
+
+        return quizCategories;
+    }
+
     
     /**
      * Retrieves all distinct quiz types from the quiz repository.
      * 
-     * This method fetches the unique types of quizzes that are stored in the repository.
-     * It logs the action and ensures that the data is available before returning it.
-     * 
      * @return a list of distinct quiz types
-     * @throws IllegalStateException if no quiz types are found in the repository
+     * @throws QuizTypesNotFoundException if no quiz types are found in the repository
      */
+    @Cacheable(value = "quizTypesCache")
     public List<String> getAllTypes() {
-        // Log the action of fetching distinct quiz types
-        logger.info("Fetching all distinct quiz types.");
+        
+    	logger.info("Fetching all distinct quiz types.");
 
-        // Fetch all distinct quiz types from the repository
         List<String> quizTypes = quizRepository.findDistinctTypeBy();
 
-        // Validate that the list of quiz types is not empty or null
-        if (quizTypes == null || quizTypes.isEmpty()) {
-            throw new IllegalStateException("No quiz types found in the repository.");
-        }
+        MiscellaneousUtils.checkIfListIsEmpty(quizTypes, new QuizTypesNotFoundException());
 
-        // Return the list of distinct quiz types
         return quizTypes;
     }
-
-
-    
-    
-    
     
     
     /**
      * Retrieves the titles of all quiz questions from the quiz repository.
      * 
-     * This method is responsible for fetching the titles of all quiz questions stored in the repository.
-     * It logs the action and performs validation to ensure that the data is available.
-     * 
      * @return a list of all quiz question titles
-     * @throws IllegalStateException if no quiz titles are found in the repository
+     * @throws QuizTitlesNotFoundException if no quiz titles are found in the repository
      */
+    @Cacheable(value = "quizTitlesCache")
     public List<String> getAllQuizQuestionTitle() {
-        // Log the action of fetching quiz question titles
-        logger.info("Fetching all quiz question titles.");
+        
+    	logger.info("Fetching all quiz question titles.");
 
-        // Fetch the titles of all quiz questions
         List<String> quizTitles = quizRepository.findAllQuestionTitles();
 
-        // Validate that the list of quiz titles is not empty
-        if (quizTitles == null || quizTitles.isEmpty()) {
-            throw new IllegalStateException("No quiz question titles found in the repository.");
-        }
+        MiscellaneousUtils.checkIfListIsEmpty(quizTitles, new QuizTitlesNotFoundException());
 
-        // Return the list of quiz question titles
         return quizTitles;
     }
-
-    
-    
     
 
     /**
      * Retrieves all quiz entries from the quiz repository.
      * 
-     * This method is responsible for fetching every quiz available in the repository. 
-     * It ensures that the query executes correctly, logs the action, and performs basic validation.
-     * 
      * @return a list of all quizzes
-     * @throws IllegalStateException if no quizzes are found in the repository
+     * @throws QuizzesNotFoundException if no quizzes are found in the repository
      */
+    @Cacheable(value = "getAllQuizsCache")
     public List<Quiz> getAllQuizs() {
-        // Log the action of fetching all quizzes
+    	
         logger.info("Fetching all quizzes.");
 
-        // Fetch all quizzes from the repository
         List<Quiz> quizzes = quizRepository.findAll();
 
-        // Validate that quizzes were found, otherwise throw an exception
-        if (quizzes == null || quizzes.isEmpty()) {
-            throw new IllegalStateException("No quizzes found in the repository.");
-        }
+        MiscellaneousUtils.checkIfListIsEmpty(quizzes, new QuizzesNotFoundException());
 
-        // Return the list of all quizzes
         return quizzes;
     }
 
-
-    
-    
-    
     
     /**
-     * Persists a quiz object (representing a quiz entity) into the repository.
-     * This method is responsible for adding new quiz or updating 
-     * existing quiz in the database.
-     * 
+     * Persists a quiz into the repository.
      * If the quiz object has an ID, it will update the existing record. If the 
      * ID is null, a new record will be created.
      * 
      * @param quiz the quiz object to be saved or updated. Must not be null.
-     * @throws IllegalArgumentException if the quiz object is null.
+     * @throws QuizNotFoundException if the quiz object is null.
      */
+    @CachePut(value = "quizCache", key = "#quiz.id")
     public boolean saveQuiz(Quiz quiz) {
-        if (quiz == null) {
-            throw new IllegalArgumentException("Quiz object cannot be null.");
-        }
-        logger.info("Attempting to save quiz with title: {} and ID: {}", quiz.getQuestionTitle(), quiz.getId());
+    	
+    	MiscellaneousUtils.checkIfEmpty(quiz, new QuizNotFoundException());
+        
+    	logger.info("Attempting to save quiz with title: {} and ID: {}", quiz.getQuestionTitle(), quiz.getId());
+
         try {
             quizRepository.save(quiz);
+
             logger.info("Quiz saved successfully with ID: {}", quiz.getId());
-            return true; // Indicate success
+            return true;
+            
         } catch (Exception e) {
             logger.error("Failed to save quiz: {}", e.getMessage(), e);
-            return false; // Indicate failure
+            
+            return false;       
+          
         }
     }
-
-    
-    
     
 
     /**
-     * Retrieves a quiz object by its unique identifier (ID).
-     * 
      * This method queries the repository to find a quiz with the specified ID. 
-     * If a quiz with the provided ID exists, it will be returned as an Optional.
-     * If no quiz is found, the Optional will be empty.
      * 
-     * @param quizId the unique ID of the quiz to retrieve. Must not be null.
-     * @return an Optional containing the quiz if found, otherwise an empty Optional.
-     * @throws IllegalArgumentException if the provided quizId is null.
+     * @param quizId the unique ID of the quiz to retrieve. Must not be null
+     * @return an Optional containing the quiz if found, otherwise an empty Optional
+     * @throws QuizIdInvalidException if the provided quizId is null
+     * @throws QuizNotFoundException if the provided quizId is invalid or no quiz found that on that ID
      */
+    @Cacheable(value = "quizCache", key = "#quizId")
     public Optional<Quiz> getQuiz(Integer quizId) {
-        if (quizId == null) {
-            throw new IllegalArgumentException("Quiz ID cannot be null.");
-        }
+    	
+    	MiscellaneousUtils.checkIfEmpty(quizId, new QuizIdInvalidException());
         
         logger.info("Fetching quiz with ID: {}", quizId);
         
         Optional<Quiz> quiz = quizRepository.findById(quizId);
         
-        if (quiz.isPresent()) {
-        	logger.info("Quiz found: {}", quiz.get().getQuestionTitle());
-        } else {
-        	logger.warn("No quiz found with ID: {}", quizId);
-        }
+        MiscellaneousUtils.checkIfEmpty(quiz, new QuizNotFoundException("No quiz found with ID: " + quizId));
+        
+        logger.info("Quiz found: {}", quiz.get().getQuestionTitle());
+
         return quiz;
     }
 
-
-    
-    
     
     /**
-     * Deletes a quiz object by its unique identifier (ID) from the repository.
-     *
      * This method attempts to delete the quiz associated with the provided ID. 
-     * It first counts the number of quizzes before the deletion attempt and 
-     * then counts the quizzes again after deletion to verify the operation's success.
      * 
-     * @param id the unique ID of the quiz to be deleted. Must not be null.
-     * @return true if the quiz was successfully deleted; false otherwise.
-     * @throws IllegalArgumentException if the provided ID is null.
+     * @param id the unique ID of the quiz to be deleted. Must not be null
+     * @return true if the quiz was successfully deleted; false otherwise
+     * @throws QuizIdInvalidException if the provided ID is null
+     * @throws QuizNotFoundException if the provided ID is invalid or no quiz found that on that ID
+     * @throws QuizDeletionException if the quiz is unable to delete/remove
+     * 
      */
-    public boolean deleteQuizById(Integer id) {
-        if (id == null) {
-            throw new IllegalArgumentException("Quiz ID cannot be null.");
-        }
+    @CacheEvict(value = "quizCache", key = "#quizId")
+    public boolean deleteQuizById(Integer quizId) {
+    	
+    	MiscellaneousUtils.checkIfEmpty(quizId, new QuizIdInvalidException());
 
         Long beforeQuizSize = quizRepository.count();
-        logger.info("Attempting to delete quiz with ID: {}", id);
         
-        // Attempt to delete the quiz
-        quizRepository.deleteById(id);
+        logger.info("Attempting to delete quiz with ID: {}", quizId);
 
-        Long afterQuizSize = quizRepository.count();
-        System.err.println("Quiz deletion attempted. Size before deletion: " + beforeQuizSize 
-                + ", Size after deletion: " + afterQuizSize);
+        Optional<Quiz> quiz = quizRepository.findById(quizId);
 
-        // Return true if the size has changed, indicating a successful deletion
-        boolean deletionSuccessful = !beforeQuizSize.equals(afterQuizSize);
-        if (deletionSuccessful) {
-            logger.info("Successfully deleted quiz with ID: {}", id);
-        } else {
-            logger.warn("No quiz found with ID: {} for deletion.", id);
+        MiscellaneousUtils.checkIfEmpty(quiz, new QuizNotFoundException("No quiz found with ID: " + quizId));
+
+        try {
+            quizRepository.deleteById(quizId);
+
+            Long afterQuizSize = quizRepository.count();
+            logger.info("Quiz deletion attempted. Size before deletion: {}, Size after deletion: {}",beforeQuizSize, afterQuizSize);
+
+            boolean deletionSuccessful = !beforeQuizSize.equals(afterQuizSize);
+            
+            if (deletionSuccessful) {
+                logger.info("Successfully deleted quiz with ID: {}", quizId);
+            } else {
+                logger.warn("No quiz found with ID: {} for deletion.", quizId);
+            }
+
+            return deletionSuccessful;
+
+        } catch (Exception e) {
+            logger.error("An error occurred while deleting quiz with ID: {}. Error: {}", quizId, e.getMessage(), e);
+            throw new QuizDeletionException("Error occurred while deleting quiz with ID: " + quizId, e);
         }
-        
-        return deletionSuccessful;
     }
-
-
     
     
     /**
-     * Retrieves a list of random quiz quizzes based on the specified level, category, and type.
-     *
-     * This method fetches a specified number of quizzes that match the provided criteria.
-     * It first converts the level from a string representation to an enum and checks for validity.
-     * If valid, it retrieves a paginated list of quizzes that match the given level, category, and type.
+     * Retrieves random quizzes filtered by level, category, and type with randomize options.
+     * The quizzes are fetched using pagination to limit the number of results.
      * 
-     * @param level the difficulty level of the quizzes (EASY, MEDIUM, HARD, EXPERT)
+     * @param level the difficulty level of the quizzes
      * @param category the category of the quizzes
-     * @param type the type of the quizzes (e.g., programming, theory)
-     * @param numberOfQuestions the number of random quizzes to retrieve (must be positive)
-     * @return a list of random quizzes matching the specified criteria
-     * @throws IllegalArgumentException if the provided level is invalid or the number of quiz is non-positive
+     * @param type the type of the quizzes
+     * @param numberOfQuestions the number of quizzes to fetch
+     * @return a list of quizzes matching the specified criteria
+     * @throws IllegalArgumentException if numberOfQuestions is invalid
+     * @throws LevelNotException if level is invalid
+     * @throws QuizzesNotFoundException if random quizzes is not found based on parameters
      */
-    public List<Quiz> getRandomQuizByLevelCategoryAndType(String level, String category, String type, int numberOfQuestions) {
-        if (numberOfQuestions <= 0) {
+    @Transactional
+    public List<QuizDTO> getRandomQuizByLevelCategoryAndType(String level, String category, String type, int numberOfQuestions) {
+       
+    	if (numberOfQuestions <= 0) {
             throw new IllegalArgumentException("Number of questions must be positive.");
         }
 
-        logger.info("Fetching {} random questions with level: {}, category: {}, type: {}", numberOfQuestions, level, category, type);
+        logger.info("Fetching {} random questions with level: {}, category: {}, type: {}", numberOfQuestions, level, category.isEmpty()?"All Category":category, type.isEmpty()?"All Type":type);
 
 
-        // Convert the level from String to Enum
         Level enumLevel;
         try {
-            enumLevel = Level.valueOf(level.toUpperCase());  // Convert level to enum (case-insensitive)
+            enumLevel = Level.valueOf(level.toUpperCase());  
         } catch (IllegalArgumentException e) {
             logger.error("Invalid level provided: {}. Allowed values: EASY, MEDIUM, HARD, EXPERT.", level, e);
-            throw new IllegalArgumentException("Invalid level provided. Allowed values: EASY, MEDIUM, HARD, EXPERT.");
+            throw new LevelNotException("Invalid level provided. Allowed values: EASY, MEDIUM, HARD, EXPERT.");
         }
 
-        // Create a pageable object to limit the number of quizzes returned
-        Pageable pageable = PageRequest.of(0, numberOfQuestions);  // First page, limit the number of quizzes
+        Pageable pageable = PageRequest.of(0, numberOfQuestions);  
 
-        // Fetch random quizzes based on level, category, and type with pagination
-        Page<Quiz> paginatedQuizzes  = quizRepository.findByLevelCategoryAndType(pageable, enumLevel, category, type);
+        Page<Quiz> paginatedQuizzes  = quizRepository.findByLevelCategoryAndType(pageable, enumLevel.name(), category, type);
+        
+        if(paginatedQuizzes==null || paginatedQuizzes.isEmpty())
+        	throw new QuizzesNotFoundException(
+        		    "No random quizzes based on " + enumLevel.name() + ", " 
+        		    + (category.isEmpty() ? "All Category" : category) + ", and " 
+        		    + (type.isEmpty() ? "All Type" : type) + " with pagination found."
+        		);
+        
+        List<QuizDTO> quizzesDTO=convertAndRandomizeQuizzes(paginatedQuizzes.getContent());
 
         logger.info("Fetched {} random quizzes matching criteria.", paginatedQuizzes.getContent().size());
-        return paginatedQuizzes.getContent();  // Return the list of random quizzes
+        
+        return quizzesDTO;
     }
 
-
+    
     /**
      * Retrieves the answers associated with a specific quizzes based on the given question ID.
      * 
@@ -315,17 +297,20 @@ public class QuizService {
      * @return a list of integers representing the answers associated with the given question ID
      * @throws IllegalArgumentException if the question ID is null or invalid (non-positive)
      */
+    @Cacheable(value = "answersCache", key = "#questionId")
     public List<String> getAnswerById(Integer questionId) {
-        // Validate the question ID to ensure it is not null or negative
+       
         if (questionId == null || questionId <= 0) {
             throw new IllegalArgumentException("Invalid question ID provided. Question ID must be a positive integer.");
         }
 
-        // Log the action of fetching answers
         logger.info("Fetching answers for question ID: {}", questionId);
-
-        // Fetch and return the answers for the given question ID from the repository
-        return quizRepository.findAnswersByQuestionId(questionId);
+        
+        List<String> AnsList=quizRepository.findAnswersByQuestionId(questionId);
+        
+        MiscellaneousUtils.checkIfListIsEmpty( AnsList, new QuizNotFoundException("Quiz not found with ID: "+questionId));
+        
+        return AnsList;
     }
 
 
@@ -333,65 +318,74 @@ public class QuizService {
      * Retrieves all distinct quiz levels from the quiz repository.
      * 
      * This method is responsible for fetching a list of distinct levels 
-     * that are associated with quizzes in the system (e.g., EASY, MEDIUM, HARD, EXPERT).
-     * It ensures that the repository query executes successfully and logs the action.
      * 
      * @return a list of distinct quiz levels
-     * @throws IllegalStateException if no levels are found in the repository
+     * @throws LevelNotException if no levels are found in the repository
      */
+    @Cacheable(value = "distinctLevelsCache")
     public List<Level> getAllDistinctLevels() {
-        // Log the action of fetching distinct quiz levels
-        logger.info("Fetching all distinct quiz levels.");
         
-        // Fetch the distinct levels from the repository
+    	logger.info("Fetching all distinct quiz levels.");
+        
         List<Level> distinctLevels  = quizRepository.findDistinctLevels();
+       
+        MiscellaneousUtils.checkIfListIsEmpty(distinctLevels, new LevelNotException());
         
-     // Sort the distinct levels according to the predefined order of the Level enum
         List<Level> sortedLevels = Arrays.stream(Level.values())
             .filter(level -> distinctLevels.contains(level))
             .collect(Collectors.toList());
-
         
-        // Validate that levels were found, otherwise throw an exception
-        if (sortedLevels  == null || sortedLevels.isEmpty()) {
-            logger.error("No distinct levels found in the quiz repository.");
-            throw new IllegalStateException("No distinct levels found in the quiz repository.");
-        }
+        MiscellaneousUtils.checkIfListIsEmpty(sortedLevels, new LevelNotException("No distinct levels found in the quiz repository."));
 
         logger.info("Fetched distinct quiz levels: {}", sortedLevels);
-        // Return the list of distinct levels
+        
         return sortedLevels;
     }
     
+    
     /**
-     * Retrieves a shuffled list of answer options for a specific quiz based on the provided quiz ID and reshuffle again.
+     * <p>Reads a JSON file containing a list of quizzes and saves them to the database.</p>
+     * 
+     * <p>This method accepts a <code>MultipartFile</code> representing the uploaded JSON file,
+     * converts it into a list of <code>Quiz</code> objects, and then saves them using 
+     * the <code>quizRepository</code>.</p>
      *
-     * This method queries the quiz repository to fetch a list of answer options associated with the given quiz ID.
-     * After fetching the options, it shuffles them to provide a random order each time the quiz is presented.
-     *
-     * @param quizId the unique ID of the quiz whose answer options are to be retrieved.
-     *               Must not be null, or an IllegalArgumentException is thrown.
-     * @return a shuffled list of answer options associated with the given quiz ID. If no options are found,
-     *         an empty list is returned.
-     * @throws IllegalArgumentException if the provided quizId is null.
+     * @param file the <code>MultipartFile</code> containing the JSON data for quizzes
+     * @throws IOException if an I/O error occurs while reading the file or parsing the JSON
+     * @throws QuizzesNotFoundException if after parsing  quizzes are empty.
      */
-    public List<String> getRandomOptionsForQuiz(Integer quizId) {
-        logger.info("Fetching options for quiz ID: {}", quizId);
-
-        List<String> options = quizRepository.findRandomOptionsByQuizId(quizId);
-
-        // Shuffle the options to get a random order
-        Collections.shuffle(options);
-
-        logger.info("Returning {} shuffled options for quiz ID: {}", options.size(), quizId);
-        return options;
+    public void saveJSONQuiz(MultipartFile file) throws IOException {
+    	
+    	List<Quiz> quizzes = objectMapper.readValue(file.getInputStream(), new TypeReference<List<Quiz>>() {});
+    	
+    	MiscellaneousUtils.checkIfListIsEmpty(quizzes, new QuizzesNotFoundException());
+    	
+    	quizRepository.saveAll(quizzes);
     }
     
-    public void saveJSONQuiz(MultipartFile file) throws IOException {
-        // Convert MultipartFile to InputStream and read it as JSON
-        List<Quiz> quizzes = objectMapper.readValue(file.getInputStream(), new TypeReference<List<Quiz>>() {});
-        // Save all parsed Quiz objects to the database
-        quizRepository.saveAll(quizzes);
+    /**
+     * Converts a list of Quiz objects into QuizDTO objects and randomizes their options.
+     *
+     * @param quizzes The list of Quiz objects to convert and shuffle.
+     * @return A list of QuizDTO objects with shuffled options.
+     */
+    private List<QuizDTO> convertAndRandomizeQuizzes(List<Quiz> quizzes) {
+        
+    	List<QuizDTO> quizDTOs = new ArrayList<>();
+        
+        for (Quiz quiz : quizzes) {
+        	
+            QuizDTO quizDto = QuizDTO.convertToDTO(quiz);
+            
+            if (quizDto.getOptions() != null) {
+                List<String> shuffledOptions = new ArrayList<>(quizDto.getOptions());
+                Collections.shuffle(shuffledOptions);
+                quizDto.setOptions(shuffledOptions);
+            }
+            quizDTOs.add(quizDto);
+        }
+        return quizDTOs;
     }
+
 
 }

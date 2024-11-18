@@ -1,3 +1,4 @@
+<%@ include file="loader.jsp" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -111,6 +112,7 @@
 
     <script>
         async function uploadFile() {
+        	showLoader();
             const fileInput = document.getElementById('fileInput');
             const messageDiv = document.getElementById('message');
 
@@ -139,8 +141,10 @@
                     messageDiv.className = "message error";
                 }
             } catch (error) {
-                messageDiv.textContent = "Error: " + error.message;
-                messageDiv.className = "message error";
+                console.error('Error:', error);
+                alert('File upload failed'); // More appropriate error message
+            } finally {
+                hideLoader(); // Hide the loader after the API call completes (success or error)
             }
         }
     </script>

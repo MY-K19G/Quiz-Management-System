@@ -1,3 +1,4 @@
+<%@ include file="loader.jsp" %>
 <%@ page isELIgnored="true"%>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
@@ -78,12 +79,30 @@
         .register-container a:hover {
             text-decoration: underline;
         }
+        
+        .error {
+            color: red;
+            text-align: center;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
 
     <div class="register-container">
         <h1>Register for Quiz Management</h1>
+         <% 
+        String errorMessage = (String)request.getAttribute("errorMessage");
+        if (errorMessage != null && !errorMessage.isEmpty()) {
+    %>
+        <div class="error">
+            <%=errorMessage %>
+        </div>
+    <% 
+    	request.removeAttribute("errorMessage");
+       }
+    %>
+
         <form id="registerForm" action="/perform_register" method="post">
             <input type="text" id="name" placeholder="Enter your full name" required>
             <input type="email" id="email" name="userEmail" placeholder="Enter your email" required>
@@ -93,24 +112,5 @@
         </form>
         <p>Already have an account? <a href="/login">Login here</a></p>
     </div>
-<!--  
-    <script>
-        document.getElementById('registerForm').addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent form submission
-
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-
-            if (password !== confirmPassword) {
-                alert("Passwords do not match!");
-            } else {
-               // alert("Registration successful!");
-                // Here you can handle the registration process (e.g., save data to the database)
-            }
-        });
-    </script>
--->
 </body>
 </html>

@@ -3,14 +3,16 @@ package k19g.quiz.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpSession;
-import k19g.quiz.configuration.WebSecurityConfig;
 import k19g.quiz.entity.Quiz;
+import k19g.quiz.service.ApplicationSettingsService;
 import k19g.quiz.service.QuizService;
 import k19g.quiz.utils.MiscellaneousUtils;
 
@@ -26,15 +28,11 @@ import java.util.Map;
  * <p>This controller provides endpoints to handle 
  * submitting and deleting quizzes.</p>
  *
- * <h3>Available Endpoints:</h3>
- * <ul>
- *   <li><b>POST /api/submit_quiz</b> - Submit quiz from users.</li>
- *   <li><b>DELETE /api/delete-quiz/{id}</b> - Deletes a quiz by its ID.</li>
- * </ul>
- *
  * <p>Each method is designed to handle its respective HTTP request, ensuring that 
  * the quiz data is managed according to the requested operation.</p>
- *
+ * 
+ * <p><strong>Author:</strong> K19G</p>
+ * 
  * @see Quiz
  * @see QuizService
  */
@@ -42,21 +40,39 @@ import java.util.Map;
 @RequestMapping("/api")
 public class QuizRestController {
 
-    private static final Logger logger = LoggerFactory.getLogger(QuizRestController.class);
+    private static final Logger logger =LoggerFactory.getLogger(QuizRestController.class);;
 
     private final QuizService quizService;
 
-	@Autowired
-	private final UserAccountController userAccountController;
+	private final ApplicationSettingsService applicationSettingsService;
+	
+	private final String unsplashApiUrl;
+
+	private final String accessKey;
+	 
+	private final String disable_text;
+	 
+	private final String enable_text;
 	
     @Autowired
-    public QuizRestController(QuizService quizService, UserAccountController userAccountController) {
+    private QuizRestController(
+    		QuizService quizService, 
+    		ApplicationSettingsService applicationSettingsService,
+    		@Value("${UNSPLASH_API_URL}") String unsplashApiUrl,
+    		@Value("${UNSPLASH_ACCESS_KEY}") String accessKey,
+    		@Value("${DISABLE_TEXT}") String disable_text,
+    		@Value("${ENABLE_TEXT}") String enable_text) {
+    	
         this.quizService = quizService;
-        this.userAccountController = userAccountController;
+        this.applicationSettingsService = applicationSettingsService;
+        this.unsplashApiUrl=unsplashApiUrl;
+		this.accessKey = accessKey;
+		this.disable_text = disable_text;
+		this.enable_text = enable_text;
     }
 
     /**
-    * Controller method to delete a quiz question by its ID.
+    * REST Controller method to delete a quiz question by its ID.
     * 
     * <p>This method handles the HTTP DELETE request to remove a quiz question from the database. 
     * If the quiz question is successfully deleted, it returns a success message. If the question 
@@ -67,10 +83,11 @@ public class QuizRestController {
     */
    @DeleteMapping("/delete-quiz/{id}")
    public ResponseEntity<String> deleteQuestion(@PathVariable Integer id) {
-       logger.info("Received request to delete quiz with ID: {}", id);
        
-       // Attempt to delete the quiz by its ID
+	   logger.info("Received request to delete quiz with ID: {}", id);
+       
        boolean isDeleted = quizService.deleteQuizById(id);
+       
        logger.debug("Deletion status for quiz ID {}: {}", id, isDeleted);
 
        if (isDeleted) {
@@ -98,47 +115,46 @@ public class QuizRestController {
        try {
            logger.info("Processing quiz submission");
 
-           // Extract submissionTime
     	   Long submissionTime =((Number) requestBody.get("submissionTime")).longValue();
     	   
            logger.debug("Received requestBody from quiz page: {}", requestBody);
 
-    	// Retrieve AnswerArray from the request body
     	   List<Map<String, List<Integer>>> answerArray = (List<Map<String, List<Integer>>>) requestBody.get("AnswerArray");
 
-    	   // Initialize the resulting List<List<Integer>>
     	   List<List<Integer>> answerArrayList = new ArrayList<>();
 
-    	   // Iterate over the answerArray
-    	   if (answerArray != null) {  // Ensure answerArray itself is not null
+    	   if (answerArray != null) { 
     	       for (Map<String, List<Integer>> map : answerArray) {
-    	           List<Integer> selectedAnswer = map.get("selectedOptions");
-    	           // If selectedAnswer is null, replace it with an empty list
-    	           if (selectedAnswer == null) {
+    	          
+    	    	   List<Integer> selectedAnswer = map.get("selectedOptions");
+    	           
+    	    	   if (selectedAnswer == null) {
     	               selectedAnswer = new ArrayList<>();
     	           }
 
-    	           // Add the selectedAnswer (either the original or an empty list) to answerArrayList
     	           answerArrayList.add(selectedAnswer);
     	       }
     	   }
 
-
-
-           // Extract answers and construct the answer map
            List<Map<String, Object>> answers = (List<Map<String, Object>>) requestBody.get("answers");
+           
            Map<Integer, List<String>> answerMap = new HashMap<>();
+          
            for (Map<String, Object> answerDetail : answers) {
-               Integer questionId = (Integer) answerDetail.get("questionId");
-               List<String> selectedOptions = (List<String>) answerDetail.get("selectedOptions");
-               answerMap.put(questionId, selectedOptions);
+           
+        	   Integer questionId = (Integer) answerDetail.get("questionId");
+           
+        	   List<String> selectedOptions = (List<String>) answerDetail.get("selectedOptions");
+               
+        	   answerMap.put(questionId, selectedOptions);
+           
            }
 
            session.setAttribute("submissionTime", MiscellaneousUtils.convertSecondsToTime(submissionTime));
            session.setAttribute("attemptQuizAnswer", answerArrayList);
            session.setAttribute("attemptQuiz", answerMap);
+           
            logger.info("Quiz submission processed and stored in session");
-
            
           return  ResponseEntity.ok().build();
        } 
@@ -156,10 +172,11 @@ public class QuizRestController {
     * @param session The HTTP session to store quiz data.
     */
     public void returnIntegerArrayAttemptedAns(Map<Integer, List<String>> mapObj,HttpSession session) {
+    	
     	List<Quiz> generatedQuestions=(List<Quiz>)session.getAttribute("Quiz_questions");
     	
     	for(Map.Entry<Integer, List<String>> map:mapObj.entrySet()) {
-    		map.getValue();
+//    		map.getValue();
     		for(int i=0;i<generatedQuestions.size();i++) {
     			generatedQuestions.get(i).getOptions();
     		}
@@ -175,12 +192,14 @@ public class QuizRestController {
      */
     @PostMapping("/uploadJson")
     public ResponseEntity<String> uploadQuizData(@RequestParam("jsonfile") MultipartFile file) {
-        logger.info("Received request to upload quiz data from file: {}", file.getOriginalFilename());
+        
+    	logger.info("Received request to upload quiz data from file: {}", file.getOriginalFilename());
 
         try {
-            quizService.saveJSONQuiz(file); // Pass the file to the service for processing
+            quizService.saveJSONQuiz(file); 
             logger.info("Successfully uploaded quiz data from file: {}", file.getOriginalFilename());
             return ResponseEntity.ok("Quiz data uploaded and stored successfully.");
+       
         } catch (IOException e) {
             logger.error("Failed to upload quiz data from file: {}. Error: {}", file.getOriginalFilename(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -189,36 +208,80 @@ public class QuizRestController {
     }
     
     /**
-     * Validates the input and removes the /register endpoint from controller if valid.
+     * Validates the input and disable the /register endpoint from controller if valid.
      *
      * @param input the input to validate
      * @return response message indicating the result of the validation
      */
     @PostMapping("/validateRegister")
-    public ResponseEntity<String> validateRegister(@RequestBody Map<String, String> request) {
-    	 String secretText = request.get("secret_text");
+    public ResponseEntity<String> validateRegister(@RequestBody Map<String, String> request,HttpSession httpSession ) {
+    	
+    	if(!(boolean)httpSession.getAttribute("fromValidateRegister") || httpSession.getAttribute("fromValidateRegister")==null) {
+    		httpSession.setAttribute("fromValidateRegister", false);
+    		return ResponseEntity.ok("You didn't come from /validateRegister.");
+    	}
+    		
+    	
+    	String secretText = request.get("secret_text");
     	 
         logger.info("Received input for validation: {}", secretText);
         
-        if(secretText.equals("disableRegisterEndpoint")) {
-        // Remove /register from security configuration
-        	userAccountController.removeRegisterMatcher(false);
-	        logger.info("remove validation: /register endpoint has been disable from controller.");
-	        return ResponseEntity.ok("Access to /register has been removed.");
+        if (secretText.equals(disable_text)) {
+            if (!applicationSettingsService.getToggleRegister()) {
+                logger.info("Access to /register has already been disabled.");
+                return ResponseEntity.ok("Access to /register has already been disabled.");
+            }
+
+            applicationSettingsService.setToggleRegister(false);
+            logger.info("Remove validation: /register endpoint has been disabled from controller.");
+            return ResponseEntity.ok("Access to /register has been disabled.");
+        } 
+
+        if (secretText.equals(enable_text)) {
+            if (applicationSettingsService.getToggleRegister()) {
+                logger.info("Access to /register has already been enabled.");
+                return ResponseEntity.ok("Access to /register has already been enabled.");
+            }
+
+            applicationSettingsService.setToggleRegister(true);
+            logger.info("Add validation: /register endpoint has been enabled from controller.");
+            return ResponseEntity.ok("Access to /register has been enabled.");
         }
+
+        logger.info("Wrong validation: /register endpoint cannot be modified due to incorrect validation text.");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                             .body("Invalid validation text. Access denied.");
+
         
-        else if(secretText.equals("enableRegisterEndpoint")) {
-        	userAccountController.removeRegisterMatcher(true);
-        	logger.info("add validation: /register endpoint has been enable from controller .");
-        	return ResponseEntity.ok("Access to /register has been added.");
-        }
+    }
+    
+    /**
+    * Handles HTTP GET requests to fetch a random background image URL from the Unsplash API.
+    *
+    * <p>This method constructs the request URL using the Unsplash API base URL and the access key. 
+    * It sends a GET request to the Unsplash API and expects to receive a response containing the URL 
+    * of a random image. The extracted image URL is then returned as a JSON object in the response.</p>
+    *
+    * @return ResponseEntity containing a map with the key "imageUrl" and the corresponding 
+    *         URL of the fetched background image.
+    *
+    * @throws RestClientException if an error occurs while making the REST call to the Unsplash API.
+    *
+    */
+    @GetMapping("/get-background-image")
+    public ResponseEntity<Map<String, String>> getBackgroundImage() {
         
-        else {
-        	logger.info("wrong validation: /register endpoint can not be removed because wrong validation text from controller.");
-        	return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Invalid validation text. Access denied.");
-        }
+    	String fullUrl = unsplashApiUrl + "&client_id=" + accessKey;
         
+    	RestTemplate restTemplate = new RestTemplate();
+        
+    	Map<String, Object> response = restTemplate.getForObject(fullUrl, Map.class);
+
+        Map<String, String> result = new HashMap<>();
+        
+        result.put("imageUrl", (String) ((Map) response.get("urls")).get("full"));
+        
+        return ResponseEntity.ok(result);
     }
 
 }

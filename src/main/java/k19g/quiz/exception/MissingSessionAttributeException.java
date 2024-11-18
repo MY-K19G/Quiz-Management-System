@@ -1,7 +1,4 @@
-package k19g.quiz.error;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package k19g.quiz.exception;
 
 /**
  * Exception thrown when a required session attribute is missing.
@@ -16,18 +13,20 @@ public class MissingSessionAttributeException extends RuntimeException {
     
     private static final long serialVersionUID = 6714628432234854602L;
 
-    private static final Logger logger = LoggerFactory.getLogger(MissingSessionAttributeException.class);
-
+    public MissingSessionAttributeException() {
+		super("No session Found.");
+    }
     
-    /**
-     * Constructs a new MissingSessionAttributeException with the specified detail message.
-     * 
-     * @param message the detail message explaining the reason for the exception
-     */
     public MissingSessionAttributeException(String message) {
         super(message);
-        logger.error("Session attribute missing");
+    }
+    
+    public MissingSessionAttributeException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
+    public MissingSessionAttributeException(Throwable cause) {
+        super(cause);
     }
 }
 

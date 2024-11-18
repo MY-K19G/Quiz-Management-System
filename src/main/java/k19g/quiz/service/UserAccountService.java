@@ -13,18 +13,22 @@ import k19g.quiz.repository.UserRepository;
  * Service class for managing user accounts.
  * This class handles the creation and management of user accounts in the system.
  * 
- * @author K19G
+ * <p><b>Author:</b> K19G</p>
  */
 @Service
 public class UserAccountService {
-
-    @Autowired
-    private UserRepository userRepository;
-    
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
+	
     private static final Logger logger = LoggerFactory.getLogger(UserAccountService.class);
+
+    private final UserRepository userRepository;
+    
+    private final BCryptPasswordEncoder passwordEncoder;
+	
+	@Autowired
+    public UserAccountService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+		this.userRepository = userRepository;
+		this.passwordEncoder = passwordEncoder;
+	}
     
     /**
      * Creates a new user account.
@@ -34,14 +38,16 @@ public class UserAccountService {
      * @param role the role assigned to the user
      */
     public void createUser(String email, String rawPassword, String role) {
-        User user = new User();
-        user.setUserEmail(email);
-        user.setUserPassword(passwordEncoder.encode(rawPassword));  // Store the encrypted password
+        
+    	User user = new User();
+       
+    	user.setUserEmail(email);
+        user.setUserPassword(passwordEncoder.encode(rawPassword));  
         user.setUserRole(role);
         
-        userRepository.save(user); // Save the user to the database
+        userRepository.save(user);
 
-        // Log user creation
         logger.info("User created with email: {}", email);
     }
+    
 }

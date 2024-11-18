@@ -7,8 +7,8 @@ package k19g.quiz.entity;
  * Author: K19G
  */
 public enum Level {
-    EASY,    // Represents easy difficulty level
-    MEDIUM,  // Represents medium difficulty level
-    HARD,    // Represents hard difficulty level
-    EXPERT   // Represents expert difficulty level
+    EASY,    
+    MEDIUM,  
+    HARD,    
+    EXPERT   
 }

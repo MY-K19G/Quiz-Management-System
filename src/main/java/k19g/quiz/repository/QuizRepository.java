@@ -15,10 +15,6 @@ import k19g.quiz.entity.Quiz;
 /**
  * Repository interface for accessing and managing quiz data in the database.
  * 
- * <p>This interface extends JpaRepository and provides additional custom queries
- * for fetching quiz information such as categories, types, levels, and specific quiz details.
- * </p>
- * 
  * <p><b>Author:</b> K19G</p>
  */
 @Repository
@@ -32,6 +28,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 	@Query("SELECT DISTINCT q.category FROM Quiz q")
 	List<String> findDistinctCategoryBy();
 
+	
 	/**
      * <p>Fetches a list of unique quiz types available.</p>
      * 
@@ -40,6 +37,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 	@Query("SELECT DISTINCT q.type FROM Quiz q")
 	List<String> findDistinctTypeBy();
 
+	
 	/**
      * Retrieves all quiz question titles.
      * 
@@ -47,6 +45,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
      */
 	@Query("SELECT q.questionTitle FROM Quiz q")
 	List<String> findAllQuestionTitles();
+	
 	
 	/**
      * Finds quizzes by level, category, and type with random ordering.
@@ -59,16 +58,22 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
      * @param type The type of quiz (optional).
      * @return A paginated list of quizzes.
      */
-	@Query("SELECT q FROM Quiz q " +
-		       "WHERE (q.level = :level) " +
-		       "AND (:category IS NULL OR :category = '' OR q.category = :category) " +
-		       "AND (:type IS NULL OR :type = '' OR q.type = :type) " +
-		       "ORDER BY RAND()")
-		Page<Quiz> findByLevelCategoryAndType(Pageable pageable, 
-		                                          @Param("level") Level level, 
-		                                          @Param("category") String category, 
-		                                          @Param("type") String type);
+	@Query(value = "SELECT * FROM quiz q " +
+            "WHERE q.level = :level " +  
+            "AND (:category IS NULL OR :category = '' OR q.category = :category) " +
+            "AND (:type IS NULL OR :type = '' OR q.type = :type) " +
+            "ORDER BY RANDOM()",
+    countQuery = "SELECT COUNT(*) FROM quiz q " +
+                 "WHERE q.level = :level " +
+                 "AND (:category IS NULL OR :category = '' OR q.category = :category) " +
+                 "AND (:type IS NULL OR :type = '' OR q.type = :type)",
+    nativeQuery = true)
+	Page<Quiz> findByLevelCategoryAndType(Pageable pageable, 
+                                   @Param("level") String level, 
+                                   @Param("category") String category, 
+                                   @Param("type") String type);
 
+	
 	/**
      * <p>Fetches the list of answers for a specific quiz question by ID.</p>
      * 
@@ -78,18 +83,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 	@Query("SELECT q.answers FROM Quiz q WHERE q.id = :questionId")
     List<String> findAnswersByQuestionId(Integer questionId);
 	
-    /**
-     * Retrieves random options for a quiz question by its ID.
-     * 
-     * <p>This query uses native SQL to retrieve options in random order for a given quiz question.</p>
-     * 
-     * @param quizId The ID of the quiz question.
-     * @return List of options in random order.
-     */
-
-	@Query(value = "SELECT o.options FROM quiz_options o WHERE o.quiz_id = :quizId ORDER BY RAND()", nativeQuery = true)
-	List<String> findRandomOptionsByQuizId(@Param("quizId") Integer quizId);
-
+	
 	/**
      * <p>Fetches a list of unique levels available in the quizzes.</p>
      * 

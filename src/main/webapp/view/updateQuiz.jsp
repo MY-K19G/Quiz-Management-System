@@ -1,3 +1,4 @@
+<%@ include file="loader.jsp" %>
 <%@page import="k19g.quiz.entity.Level"%>
 <%@page import="k19g.quiz.entity.Quiz"%>
 <%@page import="java.util.List"%>

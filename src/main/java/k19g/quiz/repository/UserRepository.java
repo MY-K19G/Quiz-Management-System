@@ -8,8 +8,7 @@ import k19g.quiz.entity.User;
 /**
  * Repository interface for accessing and managing user data in the database.
  * 
- * <p>This interface extends JpaRepository to provide CRUD operations and a custom query
- * to find a user by email.</p>
+ * <p>This interface extends JpaRepository to provide CRUD operations.</p>
  * 
  * <p><b>Author:</b> K19G</p>
  */

@@ -12,14 +12,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.ModelAndView;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import k19g.quiz.entity.Quiz;
-import k19g.quiz.error.MissingSessionAttributeException;
+import org.springframework.http.HttpStatus;
+
+import k19g.quiz.DTO.QuizDTO;
+import k19g.quiz.exception.MissingSessionAttributeException;
+import k19g.quiz.exception.QuizCategoriesNotFoundException;
+import k19g.quiz.exception.QuizTypesNotFoundException;
+import k19g.quiz.exception.QuizzesNotFoundException;
 import k19g.quiz.service.QuizService;
+import k19g.quiz.utils.MiscellaneousUtils;
 
 /**
  * Controller for managing access to quiz-related views and actions.
@@ -33,12 +41,13 @@ import k19g.quiz.service.QuizService;
 public class QuizAccessController{
 	
 	private static final Logger logger = LoggerFactory.getLogger(QuizAccessController.class);
-
-    /**
-     * The QuizService instance used to retrieve quiz categories and types for the quiz setup.
-     */
+	
+    private final QuizService quizService;
+    
     @Autowired
-    private QuizService quizService;
+	private QuizAccessController(QuizService quizService){
+		this.quizService=quizService;
+	}
 	
 	/**
 	 * Initiates the quiz setup by retrieving all available categories and types from the quiz service.
@@ -54,15 +63,20 @@ public class QuizAccessController{
 	@GetMapping("/")
 	public ModelAndView initiateQuizSetup(HttpSession session,HttpServletResponse response) {
 	    
-		 ModelAndView mav=new ModelAndView();
-		List<String> categories = quizService.getAllCategories();
+		ModelAndView mav=new ModelAndView();
+		
+		List<String> categories =  quizService.getAllCategories();
 		List<String> types = quizService.getAllTypes();
-		    
+		
+		MiscellaneousUtils.checkIfListIsEmpty(categories, new QuizCategoriesNotFoundException("Quiz categories could not be found."));
+		MiscellaneousUtils.checkIfListIsEmpty(types, new QuizTypesNotFoundException("Quiz type could not be found."));
+		
 	    mav.addObject("allCategorys", categories);
 	    mav.addObject("allTypes", types);
 	    
 	    logger.info("Fetched categories: {} and types: {}", categories, types);
 	    session.setAttribute("quiz_access", false);
+	    
 	    mav.setViewName("app/quizAssessmentDetails");
 	    return mav;
 	}
@@ -77,7 +91,7 @@ public class QuizAccessController{
 	 * manages session attributes to store quiz-related data and sets the view for the quiz participant page.
 	 * </p>
 	 *
-	 * @param name         the username of the participant.
+	 * @param name         the user name of the participant.
 	 * @param noOfQuestion the number of questions to be generated for the quiz.
 	 * @param level        the difficulty level of the quiz (easy, medium, hard, etc.).
 	 * @param category     the category of the quiz questions.
@@ -98,40 +112,20 @@ public class QuizAccessController{
 	        HttpSession session,
 	        HttpServletResponse response) {
 		
-		 ModelAndView mav=new ModelAndView();
+		ModelAndView mav=new ModelAndView();
 		 
-		// Log that the method is being executed
 	    logger.info("Processing quiz setup for user: {}", name);
-	    
-	    // Validate the inputs
-	    if (name == null || name.isEmpty()) {
-	    	logger.error("Username cannot be empty");
-	        throw new IllegalArgumentException("Username cannot be empty");
-	    }
-	    if (noOfQuestion == null || noOfQuestion <= 0) {
-	    	 logger.error("Invalid number of questions: {}", noOfQuestion);
-	        throw new IllegalArgumentException("Number of questions must be a positive integer");
-	    }
-	    if (time == null || time <= 0) {
-	    	logger.error("Invalid quiz time: {}", time);
-	        throw new IllegalArgumentException("Time must be a positive integer");
-	    }
-	    if (level == null || level.isEmpty()) {
-	    	logger.error("Level cannot be empty {}", level);
-	        throw new IllegalArgumentException("Level cannot be empty");
-	    }
+	   
+	    validateQuizParameters(name, noOfQuestion, time, level);
 
-	    logger.info("Generating questions for category: {}, type: {}, level: {}", category, type, level);
+	    logger.info("Generating questions for category: {}, type: {}, level: {}",
+	    		category.isEmpty()?"All Category":category,
+	    		 type.isEmpty()?"All Type":type, level);
 
-	    List<Quiz> generatedQuiz = quizService.getRandomQuizByLevelCategoryAndType(level, category, type, noOfQuestion);
+	    List<QuizDTO> generatedQuiz  = quizService.getRandomQuizByLevelCategoryAndType(level, category, type, noOfQuestion);
 	    
-	    // shuffling options for quiz
-	    for(Quiz quiz:generatedQuiz) {
-	    List<String> randomizedOptions=quizService.getRandomOptionsForQuiz(quiz.getId());
-	    quiz.setOptions(randomizedOptions);
-        logger.debug("Generated quiz: {} with randomized options: {}", quiz.getId(), randomizedOptions);
-	    }
-	    
+	    MiscellaneousUtils.checkIfListIsEmpty(generatedQuiz,
+	    		new QuizzesNotFoundException("Please try changing requirments.\n or \nPlease try again later."));
 	    
 	    session.setAttribute("fromQuizPage", true);
 	    session.setAttribute("username", name);
@@ -142,13 +136,56 @@ public class QuizAccessController{
 	    session.setAttribute("time", time);
 	    session.setAttribute("generatedQuiz", generatedQuiz);
 
-	   
 	    session.setAttribute("quiz_access", true);
+	    
 	    logger.info("Quiz setup completed for user: {} with {} questions", name, noOfQuestion);
 	    
 	    mav.setViewName("redirect:/quiz");
+	    
 	    return mav;
 	}
+	
+	/**
+	 * <p>Validates the parameters for creating a quiz. Helper method for <b>{@link #processQuizSetup}</b> that checks the provided quiz name, number of questions, time, 
+	 * and level meet the necessary conditions.</p>
+	 *
+	 * @param name The name of the quiz. Cannot be null or empty.
+	 * @param noOfQuestion The number of questions in the quiz. Must be a positive integer greater than 0.
+	 * @param time The time allocated for the quiz. Must be a positive integer greater than 0.
+	 * @param level The difficulty level of the quiz. Cannot be null or empty.
+	 * 
+	 * @throws IllegalArgumentException If any of the parameters are invalid, an <code>IllegalArgumentException</code> is thrown.
+	 */
+	private void validateQuizParameters(String name, Integer noOfQuestion, Integer time, String level) {
+	    if (name == null || name.isEmpty()) {
+	        logger.error("Username cannot be empty");
+	        throw new IllegalArgumentException("Username cannot be empty.");
+	    }
+
+	    if (noOfQuestion == null || noOfQuestion <= 0) {
+	        logger.error("Invalid number of questions: {}", noOfQuestion);
+	        throw new IllegalArgumentException("Number of questions must be a positive integer.");
+	    }
+	    else if(noOfQuestion < 1 || noOfQuestion > 30) {
+	    	 logger.error("Number of questions must be less than 30.");
+		     throw new IllegalArgumentException("Number of questions must be between 1 and 30.");
+	    }
+
+	    if (time == null || time <= 0) {
+	        logger.error("Invalid quiz time: {}", time);
+	        throw new IllegalArgumentException("Time must be a positive integer.");
+	    }
+	    else if(time < 1 || time > 60) {
+	    	 logger.error("Number of time(min) must be less than or equls to 60");
+		     throw new IllegalArgumentException("Number of time(min) must be between 1 and 60.");
+	    }
+
+	    if (level == null || level.isEmpty()) {
+	        logger.error("Level cannot be empty {}", level);
+	        throw new IllegalArgumentException("Level cannot be empty.");
+	    }
+	}
+
 		
 	/**
 	 * Controller method to handle the "/quiz" endpoint for retrieving and displaying a quiz.
@@ -164,13 +201,18 @@ public class QuizAccessController{
 	@GetMapping("/quiz")
 	public ModelAndView showQuiz(HttpSession session,HttpServletResponse response) {
 		
-		
 		ModelAndView mav= new ModelAndView();
+
 		Integer total_time =(Integer) session.getAttribute("time");
-	    List<Quiz> generatedQuiz =(List<Quiz>)session.getAttribute("generatedQuiz");
+	    
+		List<QuizDTO> generatedQuiz = (List<QuizDTO>)session.getAttribute("generatedQuiz");
+		
+	    MiscellaneousUtils.checkIfListIsEmpty(generatedQuiz,
+	    		new QuizzesNotFoundException("'generatedQuiz' session is not found.\n or \nPlease try again."));
 		 
 	    mav.addObject("Quiz_questions", generatedQuiz);
 		mav.addObject("total_time", total_time);
+		
 		mav.setViewName("app/quizParticipantPage");
 
 		logger.info("Quiz participant page prepared successfully.");
@@ -181,12 +223,12 @@ public class QuizAccessController{
 	/**
 	 * Handles the retrieval of the quiz results for the participant.
 	 * <p>
-	 * This method is mapped to the "/result" URL and retrieves the quiz results based on the user's attempts stored in the session.
-	 * It calculates the total correct and wrong answers and prepares the model for displaying the results on the results dashboard.
+	 * This method is mapped to the "/result" URL and retrieves the quiz results based on the user's attempts.
+	 * It calculates the total correct and wrong answers and prepares the model for displaying the results on the results dash board.
 	 * </p>
 	 *
 	 * @param session the HTTP session used to retrieve quiz-related data.
-	 * @return a {@link ModelAndView} object containing the model attributes and the view name for the quiz results dashboard.
+	 * @return a {@link ModelAndView} object containing the model attributes and the view name for the quiz results dash board.
 	 */
 	@GetMapping("/result")
 	public ModelAndView evaluationResult(HttpSession session,HttpServletResponse response) {
@@ -195,73 +237,74 @@ public class QuizAccessController{
 		
 		 ModelAndView mav=new ModelAndView();
 		 
-		 // Log the start of the result processing
 		 logger.info("Starting evaluation of quiz results.");
 
-		// Validate session attributes
 	    Boolean fromQuizPage = (Boolean) session.getAttribute("fromQuizPage");
 	    
 	    if (fromQuizPage == null || !fromQuizPage) {
 	    	logger.warn("Access denied: User did not navigate from the quiz page.");
+	    	mav.addObject("errorMessage", "Access denied: User did not navigate from the quiz page.");
 	    	mav.setViewName("403");
+	    	return mav;
 	    }
 	    
-	    @SuppressWarnings("unchecked")	//it contain user given quiz Entity
 		Map<Integer, List<String>> participantQuizData = (Map<Integer, List<String>>) session.getAttribute("attemptQuiz");
-
 
 	    if (participantQuizData == null || participantQuizData.isEmpty()) {
 	    	logger.error("Participant quiz data is not available in session.");
-	        throw new MissingSessionAttributeException("Participant quiz data is not available.");
+	    	mav.setViewName("resultNotAvailable");
+	    	return mav;
 	    }
 	    
-	    List<List<Integer>> listArr= new ArrayList<List<Integer>>();
-
-	    String name = (String) session.getAttribute("username");
-	    int noOfQuestion = (int) session.getAttribute("noOfQuestion");
-	    String level = (String) session.getAttribute("level");
-	    String category = (String) session.getAttribute("category");
-	    String type = (String) session.getAttribute("type");
-	    String total_time = session.getAttribute("time").toString();
-	    List<Quiz> generatedQuiz =(List<Quiz>)session.getAttribute("generatedQuiz");
+	    List<List<Integer>> correctAnsListArr= new ArrayList<List<Integer>>();
+	    	
+	    String	name = getSessionAttribute(session, "username", String.class);
+        Integer noOfQuestion = getSessionAttribute(session, "noOfQuestion", Integer.class);
+        String 	level = getSessionAttribute(session, "level", String.class);
+        String 	category = getSessionAttribute(session, "category", String.class);
+        String 	type = getSessionAttribute(session, "type", String.class);
+        String 	total_time = getSessionAttribute(session, "time", Integer.class).toString();
+        List<QuizDTO> generatedQuiz = getSessionAttribute(session, "generatedQuiz", List.class);
 	    
-	    // Set default values if necessary
 	    category = (category == null || category.isEmpty()) ? "All Category" : category;
 	    type = (type == null || type.isEmpty()) ? "All Type" : type;
 	    total_time = (total_time != null) ? total_time : "N/A";
 	    
-	 // Initialize counters
-	    int totalCorrectAns = 0;
-	    int totalWrongAns = 0;
+	    Integer totalCorrectAns = 0;
+	    Integer totalWrongAns = 0;
 	    
-	        // Evaluate participant's answers
-	        for (Entry<Integer, List<String>> attempt : participantQuizData.entrySet()) 
+	     for (Entry<Integer, List<String>> attempt : participantQuizData.entrySet()) 
 	        {
 	            List<String> correctAns = quizService.getAnswerById(attempt.getKey());
 	        
 	            boolean booleanAnswer=areStringListsEqualIgnoreOrder(correctAns,attempt.getValue());
 	            
-	            if (booleanAnswer) {		//first recive string attemp answer and correct ans verify
+	            if (booleanAnswer) {		
 	                totalCorrectAns++;
 	            } else {
 	                totalWrongAns++;
 	            }
 	            
-	        }
+	        }   
 	        
-	        logger.info("Evaluation completed: {} correct answers and {} incorrect answers.", totalCorrectAns, totalWrongAns);
+	     logger.info(
+	    		    "Evaluation completed: {} correct answers and {} incorrect answers.",
+	    		    totalCorrectAns,
+	    		    totalWrongAns
+	    		);
 	        
-	        for(int i=0;i<generatedQuiz.size();i++) {
+	        for(int i=0; i<generatedQuiz.size(); i++) {
 	        	
-	        	//generate attemp option using loop	
-	        	List<Integer> correctIntegerArray=  findMatchingIndexes(generatedQuiz.get(i).getAnswers(),generatedQuiz.get(i).getOptions());
-	        	listArr.add(correctIntegerArray);
+	        	List<Integer> correctIntegerArray = findMatchingIndexes(
+	        		    generatedQuiz.get(i).getAnswers(),
+	        		    generatedQuiz.get(i).getOptions()
+	        		);
 	        	
+	        	correctAnsListArr.add(correctIntegerArray);
 	        }
-	        session.setAttribute("correctAnsInt", listArr);
+	        session.setAttribute("correctAnsInt", correctAnsListArr);
 	        
 	      
-	   // Prepare the model attributes for the results view
 	      mav.addObject("username", name);
 	      mav.addObject("noOfQuestion", noOfQuestion);
 	      mav.addObject("level", level);
@@ -272,41 +315,65 @@ public class QuizAccessController{
 	      mav.addObject("totalCorrectAns", totalCorrectAns);
 	      mav.addObject("totalWrongAns", totalWrongAns);
 
-	      // Set the view name for the quiz results dashboard
 	      mav.setViewName("app/quizResultsDashboard");
 
 	      logger.info("Quiz results dashboard prepared successfully for user: {}", name);
 
 	    return mav;
 	}
-
 	
 	/**
-	 * <h3>findMatchingIndexes</h3>
-	 * <p>Finds the indexes in the <code>options</code> list where elements match those in the <code>CorrAns</code> list.</p>
-	 * <p><strong>Usage:</strong> Loops through each element in <code>CorrAns</code>, checking if it appears in <code>options</code>, 
-	 * and if found, the index of the match in <code>options</code> is added to the result list.</p>
+	 * <p>Helper method for <b>{@link #evaluationResult}</b> that retrieves an attribute from the HTTP session 
+	 * and ensures it is of the expected type. If the attribute is not found
+	 * or is of an unexpected type, a MissingSessionAttributeException or a {@link ClassCastException} is thrown.</p>
+	 *
+	 * @param session The {@link HttpSession} from which the attribute will be retrieved.
+	 * @param attributeName The name of the session attribute to retrieve.
+	 * @param type The expected type of the session attribute.
+	 * @param <T> The type of the session attribute.
+	 * 
+	 * @return The session attribute, cast to the expected type.
+	 * 
+	 * @throws MissingSessionAttributeException If the session attribute is missing.
+	 * @throws ClassCastException If the session attribute is not of the expected type.
+	 */
+	private <T> T getSessionAttribute(HttpSession session, String attributeName, Class<T> type) {
+	   
+		Object attribute = session.getAttribute(attributeName);
+	   
+		if (attribute == null) {
+	    	logger.error(attributeName+ " is missing");
+	        throw new MissingSessionAttributeException(attributeName+ "is missing");  // Throw custom exception if not found
+	    }
+	    
+	    if (!type.isInstance(attribute)) {
+	    	logger.error("Session attribute '" + attributeName + "' is not of the expected type " + type.getName());
+	        throw new ClassCastException("Session attribute '" + attributeName + "' is not of the expected type " + type.getName());
+	    }
+	    
+	    return type.cast(attribute);
+	}
+
+	/**
+	 * <p>Finds the indexes in the <code>options</code> list where elements match those in the <code>Correct answer</code> list.</p>
 	 * 
 	 * @param CorrAns the list of correct answers to match.
 	 * @param options the list of answer options to search through.
 	 * @return a list of integer indexes from <code>options</code> where matches were found.
 	 */
-	 public  List<Integer> findMatchingIndexes(List<String> CorrAns, List<String> options) {
+	 private  List<Integer> findMatchingIndexes(List<String> CorrAns, List<String> options) {
 	        List<Integer> matchingIndexes = new ArrayList<>();
 	        
-	        // Loop through the first list and compare it with each element of the second list
 	        for (int i = 0; i < CorrAns.size(); i++) {
 	            String str1 = CorrAns.get(i);
 	            
-	            // Check if the current string in list1 exists in list2
 	            for(int j=0;j<options.size();j++) {
 	            	
 	            	 if (str1.equals(options.get(j))) {
-		                    matchingIndexes.add(j);  // Add index of the matching string
-		                    break;  // Only the first occurrence from list1 is considered
+		                    matchingIndexes.add(j);  
+		                    break;  
 		                }
 	            }
-	            
 	        }
 	        logger.info("Completed findMatchingIndexes. Matching indexes: {}", matchingIndexes);
 	        return matchingIndexes;
@@ -314,22 +381,18 @@ public class QuizAccessController{
 	
 	
 	 /**
-	  * <h3>areStringListsEqualIgnoreOrder</h3>
 	  * <p>Checks if two lists of strings are equal, ignoring order. If both lists have the same elements in any order, 
 	  * the method returns <code>true</code>. Otherwise, it returns <code>false</code>.</p>
-	  * <p><strong>Note:</strong> Both lists are sorted before comparison.</p>
 	  * 
 	  * @param list1 the first list of strings to compare.
 	  * @param list2 the second list of strings to compare.
 	  * @return <code>true</code> if both lists contain the same elements in any order, <code>false</code> otherwise.
 	  */
-    public static boolean areStringListsEqualIgnoreOrder(List<String> list1, List<String> list2) {
-        // If the lists have different sizes, they cannot be equal
+    private static boolean areStringListsEqualIgnoreOrder(List<String> list1, List<String> list2) {
         if (list1.size() != list2.size()) {
             return false;
         }
 
-        // Sort both lists and compare
         Collections.sort(list1);
         Collections.sort(list2);
         
@@ -339,5 +402,25 @@ public class QuizAccessController{
         return isEqual;
     }
     
+    
+    /**
+     * <p>Controller method to handle access-denied errors.
+     * which is intended to display a "403 Forbidden" page to the user.</p>
+     * 
+     * <p>When users attempt to access a restricted resource without the proper
+     * permissions, they are redirected to this page. The returned view name "403"</p> 
+     * 
+     * 
+     * @return String representing the view name ("403") for the access-denied page.
+     */
+    @RequestMapping("/403")
+    public String accessDenied() {
+        return "403"; 
+    }
 	
+    @RequestMapping("/favicon.ico")
+    @ResponseStatus(HttpStatus.NO_CONTENT)  
+    public void returnNoFavicon() {
+        //  204 No Content 
+    }
 }

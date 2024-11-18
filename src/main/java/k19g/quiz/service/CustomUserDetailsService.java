@@ -27,9 +27,13 @@ import java.util.Set;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomUserDetailsService.class);
-
+    
+    private final UserRepository userRepository;
+    
     @Autowired
-    private UserRepository userRepository;
+    CustomUserDetailsService(UserRepository userRepository){
+    	this.userRepository=userRepository;
+    }
 
     /**
      * Loads a user from the database based on their email and 
@@ -43,7 +47,6 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String userEmail) throws UsernameNotFoundException {
         logger.info("Attempting to load user by email: {}", userEmail);
 
-    	// Fetch user by email from the database
         User user = userRepository.findByuserEmail(userEmail);
         
         if (user == null) {
@@ -53,14 +56,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         
         logger.info("User found: {} with role: {}", user.getUserEmail(), user.getUserRole());
         
-        // Convert the user's role into a collection of GrantedAuthority
         Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(user.getUserRole()));
 
-        // Return a UserDetails object for Spring Security
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getUserEmail())
                 .password(user.getUserPassword())
-                .authorities(authorities) // Corrected: wrap role in SimpleGrantedAuthority
+                .authorities(authorities)
                 .build();
     }
 

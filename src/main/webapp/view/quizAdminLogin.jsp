@@ -1,3 +1,4 @@
+<%@ include file="loader.jsp" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -77,12 +78,44 @@
         .login-container a:hover {
             text-decoration: underline;
         }
+       
+		.error-message {
+            color: red;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .success-message {
+            color: green;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
     </style>
 </head>
 <body>
 
     <div class="login-container">
         <h1>Login to Quiz Management</h1>
+        <%
+            // Check for login error if the parameter error is passed
+            String error = request.getParameter("error");
+            if (error != null && error.equals("true")) {
+        %>
+            <div class="error-message">Invalid username or password. Please try again.</div>
+        <%
+            }
+        %>
+
+        <%
+            // Check for successful logout
+            String logout = request.getParameter("logout");
+            if (logout != null && logout.equals("true")) {
+        %>
+            <div class="success-message">You have been logged out successfully.</div>
+        <%
+            }
+        %>
+        
         <form id="loginForm" action="/perform_login" method="post">
             <input type="email" id="email" name="userEmail" placeholder="Enter your email" required>
             <input type="password" id="password" name="userPassword" placeholder="Enter your password" required>

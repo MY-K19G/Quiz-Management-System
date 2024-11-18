@@ -3,6 +3,10 @@ package k19g.quiz.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
+
+import jakarta.persistence.Cacheable;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -24,32 +28,31 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "quiz")
 public class Quiz {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id; // Unique identifier for the quiz question
+    private Integer id; 
 
-    private String type; // Type of the quiz question (e.g., multiple choice, true/false)
+    private String type; 
 
-    private String category; // Category of the quiz question
+    private String category; 
     
     @Lob
-    private String questionTitle; // Title of the question
+    private String questionTitle; 
     
     @Lob
-    private String questionCode; // Code for the question, if applicable
+    private String questionCode; 
     
     @Lob
-    private String explanation; // Explanation for the answer
+    private String explanation; 
 
     @ElementCollection(fetch = FetchType.EAGER)
-    private List<String> options = new ArrayList<>(4); // Options for the quiz question
+    private List<String> options = new ArrayList<>(4); 
 
     @ElementCollection(fetch = FetchType.EAGER)
-    private List<String> answers = new ArrayList<>(4); // Correct answers' indices
+    private List<String> answers = new ArrayList<>(4);
 
     @Enumerated(EnumType.STRING)
-    private Level level; // Difficulty level of the question
+    private Level level; 
 
     public Integer getId() {
         return id;

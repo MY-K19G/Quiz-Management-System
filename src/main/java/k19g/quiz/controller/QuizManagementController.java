@@ -17,26 +17,32 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 import jakarta.servlet.http.HttpSession;
-import k19g.quiz.configuration.WebSecurityConfig;
 import k19g.quiz.entity.Quiz;
+import k19g.quiz.exception.QuizAnswerNotFoundException;
+import k19g.quiz.exception.QuizIdInvalidException;
+import k19g.quiz.exception.QuizNotFoundException;
 import k19g.quiz.service.QuizService;
+import k19g.quiz.utils.MiscellaneousUtils;
 
 /**
  * <h1>Quiz Management Controller</h1>
  * <p>This controller manages the main operations related to quizzes in the application,
  * including creation, updating, editing, and deletion. Each method provides functionality
  * to handle HTTP requests for different quiz management operations.</p>
+ * 
+ * <p><strong>Author:</strong> K19G</p>
  */
 @Controller
 public class QuizManagementController {
 	
     private static final Logger logger = LoggerFactory.getLogger(QuizManagementController.class);
 	
+    private final QuizService quizService;
+    
 	@Autowired
-	private QuizService quizService;
-
-	@Autowired
-	private ModelAndView mav;
+	private QuizManagementController(QuizService quizService){
+		this.quizService=quizService;
+	}
 
 	/**
      * Displays the page for creating a quiz.
@@ -49,7 +55,7 @@ public class QuizManagementController {
     @GetMapping("/create")
     public String showCreatepage() {
     	 logger.info("Navigating to Create Quiz page.");
-        return "CreateQuiz"; // view name for quiz creation
+        return "CreateQuiz"; 
     }
 	
     
@@ -72,40 +78,33 @@ public class QuizManagementController {
 	                                    @RequestParam("programming_question") String progQ,
 	                                    @RequestParam(value = "type", defaultValue = "Theory") String type,
 	                                    HttpSession session) {
-
-	    // Validate input for theory and programming questions
+		ModelAndView mav= new ModelAndView();
+		
 	    if (theoryQ == null || theoryQ.trim().isEmpty()) {
-	        // If theory question is empty, set the programming question as the question code
 	        quiz.setQuestionCode(progQ);
 	    } else {
-	        // If theory question is provided, set it as the question title
 	        quiz.setQuestionTitle(theoryQ);
 	    }
 
-	    // Set the type of question (Theory/Programming)
 	    quiz.setType(type);
-	    
 	    
 	    List<String> answerList = quiz.getAnswers().stream()
 	    	    .map(answerID -> quiz.getOptions().get(Integer.parseInt(answerID)))
-	    	    .filter(Objects::nonNull) // Ensure the answer is not null
-	    	    .filter(ans -> !ans.trim().isEmpty()) // Ensure the answer is not empty
+	    	    .filter(Objects::nonNull)
+	    	    .filter(ans -> !ans.trim().isEmpty())
 	    	    .collect(Collectors.toList());
 
 	    quiz.setAnswers(answerList);
 
-	    
-	    // Log the received quiz object for debugging purposes
 	    logger.debug("Prepared quiz object: {}", quiz);
 	    
-	    // Save the quiz object to the database
-	    boolean isInserted = quizService.saveQuiz(quiz); // Get success status
+	    boolean isInserted = quizService.saveQuiz(quiz); 
 	    session.setAttribute("isQuizInserted", isInserted);
-	    
         logger.info("Quiz saved status: {}", isInserted);
-	    // Redirect to the quiz creation page after saving
-	    mav.setViewName("redirect:/create");
-	    return mav;
+
+        mav.setViewName("redirect:/create");
+	    
+        return mav;
 	}
 	
 	
@@ -122,24 +121,23 @@ public class QuizManagementController {
 	 */
 	@GetMapping("/update")
 	public ModelAndView quizUpdatePage(HttpSession session) { 
-	    // Log that the update page method is being executed along with session information
-        logger.info("Entering quizUpdatePage method. Session ID: {}", session.getId());
+
+		logger.info("Entering quizUpdatePage method. Session ID: {}", session.getId());
 	    
 	    ModelAndView mav = new ModelAndView();
 
-	    // Retrieve data from the quiz service
 	    mav.addObject("allCategories", quizService.getAllCategories());
 	    mav.addObject("allQuestions", quizService.getAllQuizQuestionTitle());
 	    mav.addObject("allTypes", quizService.getAllTypes());
 	    mav.addObject("allLevels", quizService.getAllDistinctLevels());
 	    mav.addObject("QuestionEntity", quizService.getAllQuizs());
 
-	    // Set session attribute to indicate the user is on the update page
 	    session.setAttribute("fromUpdatePage", true);
 
-	    // Set the view name for the update quiz page
+	    logger.info("Quiz update page data prepared.");
+	    
 	    mav.setViewName("updateQuiz");
-        logger.info("Quiz update page data prepared.");
+
 	    return mav;
 	}
 
@@ -161,40 +159,58 @@ public class QuizManagementController {
 	                              HttpSession session) {
 	    ModelAndView mav = new ModelAndView();
 
-	    // Log the start of the edit page request
         logger.info("Received request to edit quiz. Question ID: {}", questionId);
 	    
 	    Boolean fromUpdatePage = (Boolean) session.getAttribute("fromUpdatePage");
 	    
 	    if (questionId == null) {
-	        // Log an error for missing question ID
-            logger.error("No question ID provided.");
+	    	throw new QuizIdInvalidException("No Quiz ID provided.\n or \nCheck the url edit?questionId="+questionId);
 	    } else {
-	        // Fetch the quiz question using the provided ID
+	    	
 	        Optional<Quiz> optionalQuiz = quizService.getQuiz(questionId);
+	        MiscellaneousUtils.checkIfEmpty(optionalQuiz,
+	        		new QuizNotFoundException("No quiz found for Question ID: "+questionId));
+
 	        List<String> answerList=quizService.getAnswerById(questionId);
-	        List<Integer> answerIntList=convertIntAnswerList(answerList,optionalQuiz.get().getOptions());
+	        MiscellaneousUtils.checkIfListIsEmpty(answerList, 
+	        		new QuizAnswerNotFoundException("No answer(String) found for Question ID: "+questionId));
 	        
-	        if (optionalQuiz.isPresent()) {
+	        List<Integer> answerIntList=convertIntAnswerList(answerList,optionalQuiz.get().getOptions());
+	        MiscellaneousUtils.checkIfListIsEmpty(answerIntList, 
+	        		new QuizAnswerNotFoundException("No answer(Integer Index) found for Question ID: "+questionId));
+	        	
 	            mav.addObject("QuestionEntity", optionalQuiz.get());
 	            mav.addObject("answers", answerIntList);
 	            mav.setViewName("editQuiz");
-	        } else {
-	            // Log an error for invalid question ID
-                logger.error("No quiz found for Question ID: {}", questionId);
-	        }
 	    }
 	    
-	    // Check if the request is coming from the update page
 	    if (fromUpdatePage == null || !fromUpdatePage) {
 	    	mav.addObject("homepage_url", "/update");
-	        mav.setViewName("403"); // Access denied page
+	        mav.setViewName("403"); 
             logger.warn("Access denied. User tried to edit quiz without coming from update page.");
+            return mav;
 	    }
 
 	    return mav;
 	}
 	
+	
+	/**
+	 * Converts a list of answer strings to their corresponding indices based on a list of options.
+	 * Each answer in the answer list is matched against the options, and the index of the matching
+	 * option is stored in an integer list.
+	 * <p>
+	 * For example, if the answer list is ["B", "D"] and the options are ["A", "B", "C", "D"], 
+	 * the output will be [1, 3].
+	 * </p>
+	 *
+	 * @param answerList a list of answer strings to be converted to indices
+	 * @param options a list of possible options where each answer in {@code answerList} is searched
+	 * @return a list of integers representing the indices of each answer in the {@code answerList}
+	 *         within the {@code options} list
+	 * @throws NullPointerException if either {@code answerList} or {@code options} is null
+	 *
+	 */
 	private List<Integer> convertIntAnswerList(List<String> answerList, List<String> options) {
         logger.debug("Converting answer list: {} with options: {}", answerList, options);
 		
@@ -213,16 +229,27 @@ public class QuizManagementController {
 
 
 
-
-	@PostMapping("/update_quiz")  //why is he here
+	/**
+	 * Handles the HTTP POST request for updating/editing a quiz. 
+	 * Updates the quiz with the provided theory or programming question based on the type specified.
+	 *
+	 * @param quiz the {@link Quiz} object containing the quiz details to be updated
+	 * @param theoryQ a string representing the theory question for the quiz
+	 * @param progQ a string representing the programming question for the quiz
+	 * @param type the type of the question, either "Theory" or "Programming"; defaults to "Theory" if not provided
+	 * @return a {@link ModelAndView} object that redirects to the "/update" view after the quiz is updated
+	 */
+	@PostMapping("/update_quiz") 
 	public ModelAndView updateQuiz(@ModelAttribute Quiz quiz, 
 			@RequestParam("theory_question") String theoryQ,
 			@RequestParam("programming_question") String progQ,
 			@RequestParam(value = "type", defaultValue = "Theory") String type) {
 
         logger.info("Updating quiz with TheoryQ: {}, ProgQ: {}, Type: {}", theoryQ, progQ, type);
-
+        	ModelAndView mav = new ModelAndView();
+        
 			if("Theory".equalsIgnoreCase(type)) {
+				
 				quiz.setQuestionTitle(theoryQ);
 				quiz.setType(type);
 				
@@ -233,13 +260,10 @@ public class QuizManagementController {
 			
 	        logger.info("Quiz updated: {}", quiz);
 	        
-			ModelAndView mav = new ModelAndView();
 			mav.setViewName("redirect:/update");
+
 			return mav;
 	}
-	
-	
-
 
 
 
@@ -254,17 +278,18 @@ public class QuizManagementController {
 	 */
 	@GetMapping("/delete")
 	public ModelAndView quizDeletePage() {
-	    // Log the action of accessing the delete quiz page
-        logger.info("Accessing delete quiz page.");
+		
+		ModelAndView mav= new ModelAndView();
 
-	    // Add data to the model for rendering the delete quiz page
+		logger.info("Accessing delete quiz page.");
+
 	    mav.addObject("allCategorys", quizService.getAllCategories());
 	    mav.addObject("allQuestions", quizService.getAllQuizs());
 	    mav.addObject("allTypes", quizService.getAllTypes());
 	    mav.addObject("allLevels", quizService.getAllDistinctLevels());
 	    
-	    // Set the view name for the delete quiz page
 	    mav.setViewName("deleteQuiz");
+	    
 	    return mav;
 	}
 	
@@ -275,8 +300,10 @@ public class QuizManagementController {
      */
 	@GetMapping("/upload")
 	public String showJSON_UploadPage() {
-        logger.info("Accessed the JSON upload page.");
-		return "uploadQuizJSON";
+        
+		logger.info("Accessed the JSON upload page.");
+		
+        return "uploadQuizJSON";
 	}
 	
 	/**
@@ -285,8 +312,13 @@ public class QuizManagementController {
      * @return the name of the view to render
      */
 	@GetMapping("/validateRegister")
-	public String showValidateRegister() {
-        logger.info("Accessed the validate Register page.");
+	public String showValidateRegister(HttpSession httpSession) {
+		
+		httpSession.setAttribute("fromValidateRegister", true);
+        
+		logger.info("Accessed the validate Register page.");
+		
 		return "validateRegister";
 	}
+	
 }

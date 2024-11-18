@@ -3,13 +3,18 @@ package k19g.quiz.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import k19g.quiz.entity.User;
-import k19g.quiz.service.CustomUserDetailsService;
+import k19g.quiz.service.ApplicationSettingsService;
 import k19g.quiz.service.UserAccountService;
 
 /**
@@ -23,16 +28,19 @@ import k19g.quiz.service.UserAccountService;
 @Controller
 public class UserAccountController {
 	
-	@Autowired
-	UserAccountService userAccountService;
-	
-	@Autowired
-	CustomUserDetailsService customUserDetailsService;
-	
-    private static final Logger logger = LoggerFactory.getLogger(UserAccountController.class);
-	
-    // Flag to control access to the /register endpoint
-    private boolean isRegisterEnabled = true; 
+	private static final Logger logger = LoggerFactory.getLogger(UserAccountController.class);
+	 
+	private final UserAccountService userAccountService;
+	private final ApplicationSettingsService applicationSettingsService;
+    private boolean isRegisterEnabled=true; 
+
+    @Autowired
+    private UserAccountController(UserAccountService userAccountService,
+    		ApplicationSettingsService applicationSettingsService
+    		) {
+    	this.userAccountService=userAccountService;
+    	this.applicationSettingsService=applicationSettingsService;
+    }
     
 	/**
 	 * Handles the HTTP GET request for displaying the admin login page.
@@ -40,14 +48,21 @@ public class UserAccountController {
 	 * <p>This method returns the login view for quiz administrators.
 	 * It ensures that the login page is rendered properly when accessed.
 	 * 
-	 * @return A string representing the name of the login view template (e.g., "quizAdminLogin").
+	 * @return A string representing the name of the login view template.
 	 */
 	@GetMapping("/login")
 	public String showLoginPage() {
-	    // Log the access to the login page for debugging purposes
-        logger.info("Accessing the admin login page.");
 
-	    // Return the name of the view to render
+		logger.info("Accessing the admin login page.");
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null 
+        	 && authentication.isAuthenticated() 
+        	 && !(authentication instanceof AnonymousAuthenticationToken)) {
+        	    
+        	    logger.info("User is already logged in. Redirecting to dashboard.");
+        	    return "redirect:/";
+        	}
 	    return "quizAdminLogin";
 	}
 
@@ -58,15 +73,15 @@ public class UserAccountController {
 	 * <p>This method returns the registration view for quiz administrators.
 	 * It ensures that the registration page is rendered properly when accessed.</p>
 	 * 
-	 * @return A string representing the name of the registration view template (e.g., "quizAdminRegister").
+	 * @return A string representing the name of the registration view template.
 	 */
 	@GetMapping("/register")
 	public String showRegisterPage() {
-	    // Log the access to the registration page for debugging purposes
         logger.info("Accessing the admin registration page.");
+        
+        isRegisterEnabled=applicationSettingsService.getToggleRegister();
 
-	    // Return the name of the view to render the registration page
-	    return isRegisterEnabled ? "quizAdminRegister" : null;
+        return isRegisterEnabled ? "quizAdminRegister" : null;
 	}
 
 	
@@ -84,31 +99,32 @@ public class UserAccountController {
 	 * @return A string representing the redirect to the login page.
 	 */
 	@PostMapping("/perform_register")
-	public String registerPage(@ModelAttribute User user ) {
+	public ModelAndView registerPage(@ModelAttribute User user ,RedirectAttributes redirectAttributes) {
+			ModelAndView mav= new ModelAndView("redirect:/register");
 		
-		// Check for null or empty user email and password
 	    if (user.getUserEmail() == null || user.getUserEmail().isEmpty()) {
             logger.warn("User registration failed: Email is missing.");
+            redirectAttributes.addFlashAttribute("errorMessage", "Email is missing.");
+            return mav;
 	    }
-	    
+
 	    if (user.getUserPassword() == null || user.getUserPassword().isEmpty()) {
             logger.warn("User registration failed: Password is missing.");
+            redirectAttributes.addFlashAttribute("error", "Wrong password for "+ user.getUserEmail());
+            return mav;
 	    }
 		
-		// Set user role to ADMIN
 	    user.setUserRole("ADMIN");
 
-	    // Log the registration attempt
         logger.info("Attempting to register new user with email: {}", user.getUserEmail());
 	
-	   	// Create a new user account
 		userAccountService.createUser(user.getUserEmail(),user.getUserPassword() , user.getUserRole());
 		
-		// Log successful registration
         logger.info("User registered successfully: {}", user.getUserEmail());
-
-	    // Redirect to login page after successful registration
-		return "redirect:/login";
+        
+        mav.setViewName("redirect:/login");
+        
+		return mav;
 	}
 	
 	
@@ -117,25 +133,18 @@ public class UserAccountController {
 	/**
 	 * Handles the login functionality for quiz administrators.
 	 * 
-	 * <p>This method processes the login form submission and redirects the user to the quiz creation page. 
-	 * In this simplified version, authentication logic is not handled here.</p>
+	 * <p>This method processes the login form submission and 
+	 * redirects the user to the quiz creation page.</p>
 	 * 
 	 * @param user The User object containing the submitted login credentials.
 	 * @return A string representing the redirect to the quiz creation page.
 	 */
 	@PostMapping("/perform_login")
 	public String loginValidation(@ModelAttribute User user) {
-		// Log successful login
-        logger.info("User login attempted with email: {}", user.getUserEmail());
+        
+		logger.info("User login attempted with email: {}", user.getUserEmail());
 
-	    // Redirect to the create quiz page
 	    return "redirect:/create";
 	}
-	
-	/**
-     * Toggles the access to the /register endpoint.
-     */
-    public void removeRegisterMatcher(boolean input) {
-        isRegisterEnabled = input; // Set the flag to disable /register access
-    }
+
 }

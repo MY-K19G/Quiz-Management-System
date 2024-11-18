@@ -5,13 +5,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.AccessDeniedHandler;
-
 import k19g.quiz.service.CustomUserDetailsService;
+
 
 /**
  * <h2>Configuration class for Spring Security</h2>
@@ -24,16 +24,18 @@ import k19g.quiz.service.CustomUserDetailsService;
 @Configuration
 public class WebSecurityConfig {
 
-    // CustomUserDetailsService to load user-specific data during authentication
-    @Autowired
-    private CustomUserDetailsService customUserDetailsService;
-
-    // BeanConfiguration to inject the BCryptPasswordEncoder bean
-    @Autowired
-    private BeanConfiguration beanConfiguration;
-    
     private static final Logger logger = LoggerFactory.getLogger(WebSecurityConfig.class);
 
+    private final CustomUserDetailsService customUserDetailsService;
+    
+    private final BeanConfiguration beanConfiguration;
+    
+    @Autowired
+    public WebSecurityConfig(CustomUserDetailsService customUserDetailsService, BeanConfiguration beanConfiguration) {
+		this.customUserDetailsService = customUserDetailsService;
+		this.beanConfiguration = beanConfiguration;
+	}
+    
     /**
      * <p>Defines the security filter chain, setting configurations such as permitted URLs, 
      * form login, and CSRF protection.</p>
@@ -45,72 +47,74 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    	 logger.info("Configuring security filter chain...");
-        http.authorizeHttpRequests(authz -> authz
-                // Permitting access to H2 console, registration, and login pages without authentication 
-                .requestMatchers("/h2-console/**", "/register", "/view/quizAdminRegister.jsp", "/login", "/view/quizAdminLogin.jsp", "/perform_register").permitAll()
+    	
+    	logger.info("Configuring security filter chain...");
+        
+    	http.authorizeHttpRequests(authz -> authz
+                .requestMatchers("/register", "/login", "/perform_register", "/validateRegister", "/api/validateRegister").permitAll()
 
-                // Allow public access to home, quiz assessment, participant, and result pages
-                .requestMatchers("/", "/view/app/quizAssessmentDetails.jsp", "/quiz", "/view/app/quizParticipantPage.jsp", "/result", "/view/app/quizResultsDashboard.jsp",  "/api/submit_quiz", "/processQuizSetup").permitAll()
+                .requestMatchers("/",  "/quiz", "/processQuizSetup", "/api/get-background-image", "/result", "/api/submit_quiz").permitAll()
 
-                // Permitting error pages without authentication
-                .requestMatchers("/404", "/view/404.jsp", "/403", "/view/403.jsp", "/500", "/view/500.jsp", "/view/**", "/static/**","/assets/**" ).permitAll()
+                .requestMatchers("/404", "/403", "/500","/error", "/view/**", "/assets/**", "/favicon.ico").permitAll()
                 	
-                // All other requests require authentication
-                .anyRequest().authenticated()
-        )
+                .anyRequest().denyAll()
+           )
         .formLogin(form -> form
-                // Custom login page configuration
-                .loginPage("/login")  // URL of the login page
-                .loginProcessingUrl("/perform_login")  // URL to submit the login form
-                .usernameParameter("userEmail")  // Login form username field (email)
-                .passwordParameter("userPassword")  // Login form password field
-                .defaultSuccessUrl("/", true)  // Redirect to home page after successful login
-                .failureUrl("/login?error=true")  // Redirect to login page with error message on failure
-                .permitAll()  // Allow access to login page without authentication
-        ).exceptionHandling(exceptionHandling -> 
-        exceptionHandling
-        .accessDeniedHandler(accessDeniedHandler()) // Custom 403 handler
-        )
-        .csrf(csrf -> csrf.disable())  // Disabling CSRF protection for simplicity (should enable for production)
-        .headers(headers -> headers.frameOptions(fo -> fo.disable()));  // Disabling frame options for H2 console
+                .loginPage("/login")  
+                .loginProcessingUrl("/perform_login")  
+                .usernameParameter("userEmail")  
+                .passwordParameter("userPassword")  
+                .defaultSuccessUrl("/", false)  
+                .failureUrl("/login?error=true")  
+                .permitAll()  
+        	)
+        .logout(logout -> logout
+                .logoutUrl("/logout") 
+                .logoutSuccessUrl("/login?logout=true") 
+                .invalidateHttpSession(true) 
+                .deleteCookies("JSESSIONID", "remember-me") 
+                .permitAll()
+            ) 
+        .csrf(csrf -> csrf.disable())
+        .exceptionHandling(e -> e
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                	 request.setAttribute("errorMessage", accessDeniedException.getMessage());
+                     request.getRequestDispatcher("/view/404.jsp").forward(request, response);
+                })
+                .authenticationEntryPoint((request, response, authException) -> {
+                	request.setAttribute("errorMessage", authException.getMessage());
+                    request.getRequestDispatcher("/view/404.jsp").forward(request, response);
+                })
+            );
 
         logger.info("Security filter chain configured successfully.");
         
-        return http.build();  // Return the configured SecurityFilterChain
+        return http.build();  
     }
 
     /**
-     * <p>Configures global authentication with a custom <code>UserDetailsService</code> 
-     * and <code>BCryptPasswordEncoder</code>.</p>
-     * 
-     * @param auth the <code>AuthenticationManagerBuilder</code> to build the authentication manager.
-     * @throws Exception if there is an error during authentication configuration.
-     */
-    @Autowired
-    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-    	logger.info("Configuring global authentication with CustomUserDetailsService and BCryptPasswordEncoder...");
-        auth.userDetailsService(customUserDetailsService)
-            .passwordEncoder(beanConfiguration.bCryptPasswordEncoder());  // Use BCryptPasswordEncoder for password hashing
-    }
-    
-    
-    /**
-     * <p>Configures a custom <code>AccessDeniedHandler</code> bean. This handler is triggered when a user 
-     * attempts to access a resource they do not have permission for, redirecting them to the <code>/403</code> 
-     * error page.</p>
+     * Creates and configures an {@link AuthenticationManager} bean for Spring Security.
+     * <p>
+     * This method sets up the authentication manager to use a custom {@link UserDetailsService}
+     * (in this case, {@code customUserDetailsService}) for user authentication and specifies
+     * a {@link PasswordEncoder} (in this case, a BCrypt password encoder) to encode and verify passwords.
+     * </p>
      *
-     * @return an <code>AccessDeniedHandler</code> instance configured to redirect to <code>/403</code>
+     * @param http The {@link HttpSecurity} object that is used to build security filters and shared objects,
+     *             allowing access to authentication configuration.
+     * @return An instance of {@link AuthenticationManager} that will be used by Spring Security for user authentication.
+     * @throws Exception if an error occurs while configuring the {@link AuthenticationManager}.
      */
     @Bean
-    public AccessDeniedHandler accessDeniedHandler() {
-        return (request, response, accessDeniedException) -> {
-            logger.warn("Access denied for user: {}. Redirecting to /403 page.", request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "unknown user");
-            response.sendRedirect("/403");
-        };
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        AuthenticationManagerBuilder authenticationManagerBuilder = 
+            http.getSharedObject(AuthenticationManagerBuilder.class);
+        
+        authenticationManagerBuilder.userDetailsService(customUserDetailsService)
+            .passwordEncoder(beanConfiguration.bCryptPasswordEncoder());  // Use the BCrypt password encoder
+
+        return authenticationManagerBuilder.build();
     }
-    
-    
     
 }
 
