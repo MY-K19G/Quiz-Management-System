@@ -55,9 +55,9 @@ public class WebSecurityConfig {
 
                 .requestMatchers("/",  "/quiz", "/processQuizSetup", "/api/get-background-image", "/result", "/api/submit_quiz").permitAll()
 
-                .requestMatchers("/404", "/403", "/500","/error", "/view/**", "/assets/**", "/favicon.ico").permitAll()
+                .requestMatchers("/404", "/403", "/500","/error", "/view/**", "/assets/**", "/favicon.ico"," /actuator/**").permitAll()
                 	
-                .anyRequest().denyAll()
+                .anyRequest().authenticated()
            )
         .formLogin(form -> form
                 .loginPage("/login")  
@@ -75,17 +75,7 @@ public class WebSecurityConfig {
                 .deleteCookies("JSESSIONID", "remember-me") 
                 .permitAll()
             ) 
-        .csrf(csrf -> csrf.disable())
-        .exceptionHandling(e -> e
-                .accessDeniedHandler((request, response, accessDeniedException) -> {
-                	 request.setAttribute("errorMessage", accessDeniedException.getMessage());
-                     request.getRequestDispatcher("/view/404.jsp").forward(request, response);
-                })
-                .authenticationEntryPoint((request, response, authException) -> {
-                	request.setAttribute("errorMessage", authException.getMessage());
-                    request.getRequestDispatcher("/view/404.jsp").forward(request, response);
-                })
-            );
+        .csrf(csrf -> csrf.disable());
 
         logger.info("Security filter chain configured successfully.");
         
@@ -111,7 +101,7 @@ public class WebSecurityConfig {
             http.getSharedObject(AuthenticationManagerBuilder.class);
         
         authenticationManagerBuilder.userDetailsService(customUserDetailsService)
-            .passwordEncoder(beanConfiguration.bCryptPasswordEncoder());  // Use the BCrypt password encoder
+            .passwordEncoder(beanConfiguration.bCryptPasswordEncoder());  
 
         return authenticationManagerBuilder.build();
     }

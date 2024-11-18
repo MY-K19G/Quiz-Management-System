@@ -76,6 +76,7 @@ public class QuizAccessController{
 	    
 	    logger.info("Fetched categories: {} and types: {}", categories, types);
 	    session.setAttribute("quiz_access", false);
+	    session.setAttribute("from_homepage", true);
 	    
 	    mav.setViewName("app/quizAssessmentDetails");
 	    return mav;
@@ -113,7 +114,16 @@ public class QuizAccessController{
 	        HttpServletResponse response) {
 		
 		ModelAndView mav=new ModelAndView();
-		 
+		
+		Boolean from_homepage = (Boolean) session.getAttribute("from_homepage");
+		
+		if (from_homepage == null || !from_homepage) {
+	    	logger.warn("Access denied: User did not navigate from the home page.");
+	    	mav.addObject("errorMessage", "Access denied: User did not navigate from the home page.");
+	    	mav.setViewName("403");
+	    	return mav;
+	    }
+		
 	    logger.info("Processing quiz setup for user: {}", name);
 	   
 	    validateQuizParameters(name, noOfQuestion, time, level);
@@ -203,6 +213,15 @@ public class QuizAccessController{
 		
 		ModelAndView mav= new ModelAndView();
 
+		Boolean from_homepage = (Boolean) session.getAttribute("from_homepage");
+		
+		if (from_homepage == null || !from_homepage) {
+	    	logger.warn("Access denied: User did not navigate from the home page.");
+	    	mav.addObject("errorMessage", "Access denied: User did not navigate from the home page.");
+	    	mav.setViewName("403");
+	    	return mav;
+	    }
+		
 		Integer total_time =(Integer) session.getAttribute("time");
 	    
 		List<QuizDTO> generatedQuiz = (List<QuizDTO>)session.getAttribute("generatedQuiz");
