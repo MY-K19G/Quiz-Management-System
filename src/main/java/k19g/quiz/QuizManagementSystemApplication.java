@@ -19,7 +19,7 @@ public class QuizManagementSystemApplication{
 
     public static void main(String[] args) {
         SpringApplication.run(QuizManagementSystemApplication.class, args);
-        logger.info("Quiz Management System Application started successfully."); // Log after application starts
+        logger.info("Quiz Management System Application started successfully.");
 
     }
     

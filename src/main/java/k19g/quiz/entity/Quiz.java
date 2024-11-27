@@ -3,10 +3,6 @@ package k19g.quiz.entity;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
-
-import jakarta.persistence.Cacheable;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

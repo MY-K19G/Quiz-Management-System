@@ -502,10 +502,10 @@
 
 		// Function to delete a quiz question
 		function deleteQuestion(questionId, event) {
-			showDeleteLoader();
+			
 			event.stopPropagation();  
 			if (confirm("Are you sure you want to delete this question?")) {
-
+				showDeleteLoader();
 				fetch(`/api/delete-quiz/${questionId}`, {
 					method: 'DELETE',
 					headers: {
@@ -525,6 +525,7 @@
 							questions.splice(questionIndex, 1); // Remove the question from the array
 							filterQuestions(); // Re-render the questions after deletion
 							alert(`Question ID ${questionId} deleted successfully!`); // Success message
+							location.reload();
 						}
 					})
 					.catch(error => {

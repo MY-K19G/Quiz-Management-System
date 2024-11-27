@@ -1,5 +1,6 @@
 package k19g.quiz.utils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -101,6 +102,31 @@ public class MiscellaneousUtils {
                 throw exception;
             }
         }
+    }
+
+    /**
+     * <p>Finds the indexes in the <code>sourceList</code> where elements match those in the <code>targetList</code>.</p>
+     * 
+     * @param sourceList the list in which you are searching for matching elements from the <code>targetList</code>.
+     * @param targetList the list that contains the elements you're trying to find in the <code>sourceList</code>.
+     * @return a list of integer indexes from the <code>targetList</code> where matches were found.
+     */
+    public static  List<Integer> findMatchingIndexes(List<String> sourceList, List<String> targetList) {
+        List<Integer> matchingIndices = new ArrayList<>();
+        
+        for (int i = 0; i < sourceList.size(); i++) {
+            String str1 = sourceList.get(i);
+            
+            for(int j=0;j<targetList.size();j++) {
+            	
+            	 if (str1.equals(targetList.get(j))) {
+            		  matchingIndices.add(j);  
+	                    break;  
+	                }
+            }
+        }
+        logger.info("Completed findMatchingIndexes. Matching indexes: {}", matchingIndices);
+        return matchingIndices;
     }
 
 }

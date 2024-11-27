@@ -1,6 +1,6 @@
 <%
 if(session.getAttribute("fromUpdatePage")!=null && (boolean )session.getAttribute("fromUpdatePage") )
-{	session.removeAttribute("fromUpdatePage");
+{	//session.setAttribute("fromUpdatePage", false);
 %>
 <%@ include file="loader.jsp" %>
 <%@page import="k19g.quiz.entity.Quiz"%>
@@ -642,7 +642,7 @@ if(session.getAttribute("fromUpdatePage")!=null && (boolean )session.getAttribut
 							<label for="option<%= i %>">
 								<input type="checkbox" id="option<%= i %>" name="answers" value="<%= optionValue %>" <%=isChecked ? "checked" : "" %>>
 								<span class="custom-checkbox"></span>
-								<input type="text" id="optionText<%= i %>" placeholder="Option <%= optionLabel %>" name="options" value="<%= optionValue %>">
+								<input type="text" id="optionText<%= i %>" placeholder="Option <%= optionLabel %>" name="options" value="<%= optionValue %>" oninput="updateCheckboxValue('<%= i %>')">
 							</label>
 							<div class="tooltip">?
 								<span class="tooltiptext">Check this box to mark this option as
@@ -662,6 +662,14 @@ if(session.getAttribute("fromUpdatePage")!=null && (boolean )session.getAttribut
 
 
 	<script>
+		function updateCheckboxValue(index) {
+	        const inputField = document.getElementById('optionText'+index);
+	        const checkbox = document.getElementById('option'+index);
+	        console.log("---------------");
+	        console.log(inputField);
+	        console.log(checkbox);
+	        checkbox.value = inputField.value;
+	    }
 		// Get DOM elements for question type toggle and related UI components
 		const questionTypeToggle = document.getElementById('questionTypeToggle');
 		const questionTextArea = document.getElementById('question');

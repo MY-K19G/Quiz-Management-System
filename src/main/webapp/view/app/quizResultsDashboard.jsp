@@ -28,7 +28,6 @@
 			flex-direction: column;
 			height: 100vh;
 			scroll-behavior: smooth;
-			/* Enables smooth scrolling */
 		}
 
 		/* Main content area styling */
@@ -37,7 +36,6 @@
 			flex-grow: 1;
 			overflow-y: auto;
 			position: relative;
-			/* Necessary for the scroll buttons to move with content */
 		}
 
 		/* Header styling for alignment */
@@ -101,21 +99,18 @@
 
 		/* Tint question card green for correct answers */
 		.question.correct {
-			/* background-color: #d4edda; */
 			color: #155724;
 			border: 4px dashed #c3e6cb;
 		}
 
 		/* Tint question card red for incorrect answers */
 		.question.incorrect {
-			/*  background-color: #f8d7da; */
 			color: #721c24;
 			border: 4px dashed #f5c6cb;
 		}
 
 		/* Add label for not attempted questions */
 		.question.not-attempted {
-			/* background-color: #fff3cd; */
 			color: #856404;
 			border: 4px dashed #ffeeba;
 		}
@@ -138,12 +133,10 @@
 			border-radius: 8px;
 			display: flex;
 			justify-content: space-between;
-			/* Aligns option text to the left and tick/cross to the right */
 			border: 2px solid #e0e0e0;
 			font-size: 16px;
 			font-weight: bold;
 			align-items: center;
-			/* Center items vertically */
 		}
 
 		/* Styles for correctly selected options */
@@ -163,12 +156,9 @@
 		/* Styling for tick and cross indicators */
 		.tick-cross {
 			margin-left: 10px;
-			/* Space between option text and symbol */
 			font-size: 20px;
 			display: flex;
-			/* Flex display to allow centering if needed */
 			align-items: center;
-			/* Center the symbols vertically */
 		}
 
 		/* Explanation section styling */
@@ -187,6 +177,8 @@
         	word-wrap: break-word;
         	overflow-x: auto;
         	max-width: 100%;
+        	font-family: cursive;
+        	font-size: larger;
     	}
 
 		/* Code block styling for programming questions */
@@ -253,13 +245,11 @@
 		/* Scroll button container styling */
 		.scroll-buttons {
 			position: fixed;
-			/* Fixed positioning for visibility */
 			bottom: 20px;
 			right: 20px;
 			display: flex;
 			flex-direction: column;
 			gap: 10px;
-			/* Adds space between the buttons */
 		}
 
 		/* Color styles for correct, wrong, attempted, and time taken */
@@ -414,8 +404,6 @@
 				// Create a div for each question
 				const questionDiv = document.createElement("div");
 				questionDiv.classList.add("question", questionClass);
-				//const questionDiv = document.createElement("div");
-				//questionDiv.className = "question";
 				questionDiv.innerHTML = `<h3>Question ${index + 1}: ${item.question}</h3>`;
 
 				// Code block for programming questions
@@ -449,8 +437,6 @@
 
 				// Display user's selected options
 				const selectedOptions = item.userAnswer.map(answerIndex => optionLabels[answerIndex]).join(', ');
-				console.log(typeof selectedOptions)
-				console.log(selectedOptions)
 				const selectedOptionsDiv = document.createElement("div");
 				selectedOptionsDiv.className = "selected-options";
 				selectedOptionsDiv.innerHTML = `<strong>You selected:</strong> ${selectedOptions || "No options selected"}`;
@@ -461,7 +447,8 @@
 				// Explanation section for the question
 				const explanationDiv = document.createElement("div");
 				explanationDiv.className = "explanation";
-				explanationDiv.innerHTML = `<strong>Explanation:</strong> <pre>${item.explanation}</pre>`;
+				const explanation = splitAndLabel(item.explanation);
+				explanationDiv.innerHTML = `<strong>Explanation:</strong> <pre>${explanation}</pre>`;
 				questionDiv.appendChild(explanationDiv);
 
 				quizContentDiv.appendChild(questionDiv);
@@ -469,6 +456,15 @@
 
 			// Display the user's score at the end of the quiz
 			document.getElementById("score-display").innerText = `Score: ${score}/${quizData.length}`;
+		}
+		
+		function splitAndLabel(inputString) {
+		    const parts = inputString.split("¶");
+
+		    return parts.map((part, index) => {
+		        const label = String.fromCharCode(65 + index);
+		        return `option ${label}: ${part.trim()}`;
+		    }).join("\n\n"); 
 		}
 
 		// Close marquee function

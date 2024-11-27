@@ -3,12 +3,12 @@ package k19g.quiz.controller;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 import jakarta.servlet.http.HttpSession;
+import k19g.quiz.entity.Level;
 import k19g.quiz.entity.Quiz;
 import k19g.quiz.exception.QuizAnswerNotFoundException;
 import k19g.quiz.exception.QuizIdInvalidException;
@@ -38,6 +39,9 @@ public class QuizManagementController {
     private static final Logger logger = LoggerFactory.getLogger(QuizManagementController.class);
 	
     private final QuizService quizService;
+
+	 @Autowired
+     public CacheManager cacheManager;
     
 	@Autowired
 	private QuizManagementController(QuizService quizService){
@@ -98,7 +102,7 @@ public class QuizManagementController {
 
 	    logger.debug("Prepared quiz object: {}", quiz);
 	    
-	    boolean isInserted = quizService.saveQuiz(quiz); 
+	    boolean isInserted = quizService.saveQuiz(quiz)!=null; 
 	    session.setAttribute("isQuizInserted", isInserted);
         logger.info("Quiz saved status: {}", isInserted);
 
@@ -125,12 +129,11 @@ public class QuizManagementController {
 		logger.info("Entering quizUpdatePage method. Session ID: {}", session.getId());
 	    
 	    ModelAndView mav = new ModelAndView();
-
+	    
 	    mav.addObject("allCategories", quizService.getAllCategories());
-	    mav.addObject("allQuestions", quizService.getAllQuizQuestionTitle());
 	    mav.addObject("allTypes", quizService.getAllTypes());
 	    mav.addObject("allLevels", quizService.getAllDistinctLevels());
-	    mav.addObject("QuestionEntity", quizService.getAllQuizs());
+	    mav.addObject("QuestionEntity", quizService.getAllQuizzes());
 
 	    session.setAttribute("fromUpdatePage", true);
 
@@ -167,19 +170,21 @@ public class QuizManagementController {
 	    	throw new QuizIdInvalidException("No Quiz ID provided.\n or \nCheck the url edit?questionId="+questionId);
 	    } else {
 	    	
-	        Optional<Quiz> optionalQuiz = quizService.getQuiz(questionId);
+	        Quiz optionalQuiz = quizService.getQuiz(questionId).get();
+	    	
 	        MiscellaneousUtils.checkIfEmpty(optionalQuiz,
 	        		new QuizNotFoundException("No quiz found for Question ID: "+questionId));
 
 	        List<String> answerList=quizService.getAnswerById(questionId);
 	        MiscellaneousUtils.checkIfListIsEmpty(answerList, 
 	        		new QuizAnswerNotFoundException("No answer(String) found for Question ID: "+questionId));
+	       
 	        
-	        List<Integer> answerIntList=convertIntAnswerList(answerList,optionalQuiz.get().getOptions());
+	        List<Integer> answerIntList=convertIntAnswerList(answerList,optionalQuiz.getOptions());
 	        MiscellaneousUtils.checkIfListIsEmpty(answerIntList, 
 	        		new QuizAnswerNotFoundException("No answer(Integer Index) found for Question ID: "+questionId));
 	        	
-	            mav.addObject("QuestionEntity", optionalQuiz.get());
+	            mav.addObject("QuestionEntity", optionalQuiz);
 	            mav.addObject("answers", answerIntList);
 	            mav.setViewName("editQuiz");
 	    }
@@ -284,7 +289,7 @@ public class QuizManagementController {
 		logger.info("Accessing delete quiz page.");
 
 	    mav.addObject("allCategorys", quizService.getAllCategories());
-	    mav.addObject("allQuestions", quizService.getAllQuizs());
+	    mav.addObject("allQuestions", quizService.getAllQuizzes());
 	    mav.addObject("allTypes", quizService.getAllTypes());
 	    mav.addObject("allLevels", quizService.getAllDistinctLevels());
 	    

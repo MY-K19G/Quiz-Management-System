@@ -37,6 +37,7 @@ import k19g.quiz.exception.QuizIdInvalidException;
 import k19g.quiz.exception.QuizNotFoundException;
 import k19g.quiz.repository.QuizRepository;
 import k19g.quiz.utils.MiscellaneousUtils;
+import k19g.quiz.utils.QuizCacheManager;
 
 /**
  * <p>Service class for managing quiz-related operations.
@@ -52,11 +53,13 @@ public class QuizService {
 	private static final Logger logger= LoggerFactory.getLogger(QuizService.class);
 	private final QuizRepository quizRepository;
     private final ObjectMapper objectMapper;
+    private QuizCacheManager quizCacheManager;
 
     @Autowired
-    public QuizService(QuizRepository quizRepository, ObjectMapper objectMapper) {
+    public QuizService(QuizRepository quizRepository, ObjectMapper objectMapper,QuizCacheManager quizCacheManager) {
         this.quizRepository = quizRepository;
         this.objectMapper = objectMapper;
+        this.quizCacheManager=quizCacheManager;
     }
 
 
@@ -66,7 +69,7 @@ public class QuizService {
      * @return a list of distinct quiz categories
      * @throws QuizCategoriesNotFoundException if no quiz categories are found in the repository
      */
-    @Cacheable(value="quizCategories")
+    @Cacheable(value = "quizCategoriesCache", key = "#root.methodName")
     public List<String> getAllCategories() {
         
     	logger.info("Fetching all distinct quiz categories.");
@@ -85,7 +88,7 @@ public class QuizService {
      * @return a list of distinct quiz types
      * @throws QuizTypesNotFoundException if no quiz types are found in the repository
      */
-    @Cacheable(value = "quizTypesCache")
+    @Cacheable(value = "quizTypesCache", key = "#root.methodName")
     public List<String> getAllTypes() {
         
     	logger.info("Fetching all distinct quiz types.");
@@ -104,7 +107,7 @@ public class QuizService {
      * @return a list of all quiz question titles
      * @throws QuizTitlesNotFoundException if no quiz titles are found in the repository
      */
-    @Cacheable(value = "quizTitlesCache")
+    @Cacheable(value = "quizTitlesCache", key = "#root.methodName")
     public List<String> getAllQuizQuestionTitle() {
         
     	logger.info("Fetching all quiz question titles.");
@@ -123,8 +126,8 @@ public class QuizService {
      * @return a list of all quizzes
      * @throws QuizzesNotFoundException if no quizzes are found in the repository
      */
-    @Cacheable(value = "getAllQuizsCache")
-    public List<Quiz> getAllQuizs() {
+    @Cacheable(value = "getAllQuizzesCache", key = "#root.methodName")
+    public List<Quiz> getAllQuizzes() {
     	
         logger.info("Fetching all quizzes.");
 
@@ -145,22 +148,31 @@ public class QuizService {
      * @throws QuizNotFoundException if the quiz object is null.
      */
     @CachePut(value = "quizCache", key = "#quiz.id")
-    public boolean saveQuiz(Quiz quiz) {
+    public Quiz saveQuiz(Quiz quiz) {
     	
     	MiscellaneousUtils.checkIfEmpty(quiz, new QuizNotFoundException());
         
     	logger.info("Attempting to save quiz with title: {} and ID: {}", quiz.getQuestionTitle(), quiz.getId());
 
-        try {
-            quizRepository.save(quiz);
+    	try {
+    		Quiz updatedQuiz=null;
 
-            logger.info("Quiz saved successfully with ID: {}", quiz.getId());
-            return true;
+    		if(quiz.getId()!=null) {
+    			 updatedQuiz=quizRepository.save(quiz);
+				quizCacheManager.updateCache(updatedQuiz, "update");
+    			 logger.info("Quiz updated successfully with ID: {}", quiz.getId());
+    		}else {
+    			updatedQuiz=quizRepository.save(quiz);
+    			quizCacheManager.updateCache(updatedQuiz, "create");
+    			logger.info("Quiz saved successfully with ID: {}", quiz.getId());
+    		}
+    	
+            return updatedQuiz;
             
         } catch (Exception e) {
             logger.error("Failed to save quiz: {}", e.getMessage(), e);
             
-            return false;       
+            return null;       
           
         }
     }
@@ -210,7 +222,7 @@ public class QuizService {
         
         logger.info("Attempting to delete quiz with ID: {}", quizId);
 
-        Optional<Quiz> quiz = quizRepository.findById(quizId);
+        Quiz quiz = quizRepository.findById(quizId).get();
 
         MiscellaneousUtils.checkIfEmpty(quiz, new QuizNotFoundException("No quiz found with ID: " + quizId));
 
@@ -228,6 +240,8 @@ public class QuizService {
                 logger.warn("No quiz found with ID: {} for deletion.", quizId);
             }
 
+			quizCacheManager.updateCache(quiz, "delete");
+            
             return deletionSuccessful;
 
         } catch (Exception e) {
@@ -322,7 +336,7 @@ public class QuizService {
      * @return a list of distinct quiz levels
      * @throws LevelNotException if no levels are found in the repository
      */
-    @Cacheable(value = "distinctLevelsCache")
+    @Cacheable(value = "distinctLevelsCache", key = "#root.methodName")
     public List<Level> getAllDistinctLevels() {
         
     	logger.info("Fetching all distinct quiz levels.");
@@ -361,6 +375,9 @@ public class QuizService {
     	MiscellaneousUtils.checkIfListIsEmpty(quizzes, new QuizzesNotFoundException());
     	
     	quizRepository.saveAll(quizzes);
+    	for(Quiz quiz:quizzes) {
+			quizCacheManager.updateCache(quiz, "create");
+    	}
     }
     
     /**

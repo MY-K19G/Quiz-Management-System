@@ -314,7 +314,7 @@ public class QuizAccessController{
 	        
 	        for(int i=0; i<generatedQuiz.size(); i++) {
 	        	
-	        	List<Integer> correctIntegerArray = findMatchingIndexes(
+	        	List<Integer> correctIntegerArray = MiscellaneousUtils.findMatchingIndexes(
 	        		    generatedQuiz.get(i).getAnswers(),
 	        		    generatedQuiz.get(i).getOptions()
 	        		);
@@ -373,31 +373,6 @@ public class QuizAccessController{
 	    return type.cast(attribute);
 	}
 
-	/**
-	 * <p>Finds the indexes in the <code>options</code> list where elements match those in the <code>Correct answer</code> list.</p>
-	 * 
-	 * @param CorrAns the list of correct answers to match.
-	 * @param options the list of answer options to search through.
-	 * @return a list of integer indexes from <code>options</code> where matches were found.
-	 */
-	 private  List<Integer> findMatchingIndexes(List<String> CorrAns, List<String> options) {
-	        List<Integer> matchingIndexes = new ArrayList<>();
-	        
-	        for (int i = 0; i < CorrAns.size(); i++) {
-	            String str1 = CorrAns.get(i);
-	            
-	            for(int j=0;j<options.size();j++) {
-	            	
-	            	 if (str1.equals(options.get(j))) {
-		                    matchingIndexes.add(j);  
-		                    break;  
-		                }
-	            }
-	        }
-	        logger.info("Completed findMatchingIndexes. Matching indexes: {}", matchingIndexes);
-	        return matchingIndexes;
-	    }
-	
 	
 	 /**
 	  * <p>Checks if two lists of strings are equal, ignoring order. If both lists have the same elements in any order, 
