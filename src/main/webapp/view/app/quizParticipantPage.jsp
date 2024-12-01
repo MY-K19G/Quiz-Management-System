@@ -45,6 +45,8 @@ quiz_access=false;%>
 			position: relative;
 			z-index: 1;
 			flex: 1;
+			height: 600px;
+			overflow-y: auto;
 		}
 
 		.background {
@@ -154,9 +156,7 @@ quiz_access=false;%>
 		/* Timer Styles */
 		#timer {
 			text-align: center;
-			/* Center the timer text */
 			margin-bottom: 20px;
-			/* Add space below the timer */
 		}
 
 		svg {
@@ -175,7 +175,6 @@ quiz_access=false;%>
 
 		.progress-circle {
 			stroke: #f0ad4e;
-			/* Timer Circle Color */
 			transition: stroke-dashoffset 1s linear;
 		}
 
@@ -183,7 +182,6 @@ quiz_access=false;%>
 		.sidebar {
 			width: 200px;
 			margin-left: 20px;
-			/* Creates space to the left of the sidebar */
 			background-color: rgba(255, 255, 255, 0.9);
 			border-radius: 5px;
 			padding: 15px;
@@ -212,9 +210,7 @@ quiz_access=false;%>
 			padding: 10px;
 			justify-content: center;
 			max-height: calc(50px * 3 + 20px);
-			/* Limit height to 3 rows (3x50px circles + gap) */
 			overflow-y: auto;
-			/* Enable scrolling if more than 9 items */
 		}
 
 		.status-box {
@@ -285,7 +281,7 @@ quiz_access=false;%>
 				align-items: center;
 	            position: fixed;
 	            top: 0;
-	            left: -250px; /* Initially hidden */
+	            left: -250px; 
 	            width: 250px;
 	            height: 100%;
 	            background-color: #ff7c00;
@@ -297,7 +293,7 @@ quiz_access=false;%>
 	        }
 	        
 	        .sidebar-container.active {
-	            left: 0; /* Slide in */
+	            left: 0; 
 	        }
 	        
 			.sidebar {
@@ -327,11 +323,12 @@ quiz_access=false;%>
 	        .quiz-container {
 	            padding: 20px;
 	            transition: margin-left 0.3s ease;
-	            width: 82%;
+	            width: 80%;
+	            overflow: hidden; 
 	        }
 	        
 	         .quiz-container.shift {
-	            margin-left: 250px; /* Shift content when sidebar is open */
+	            margin-left: 250px; 
 	        }
 	        
 			.button-container {
@@ -427,95 +424,95 @@ quiz_access=false;%>
         }
         
         
-/* Container for each option */
-.option {
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s, border-color 0.3s;
-    display: flex;
-    align-items: center;
-}
-
-/* Animation effect */
- 
-/* Container for each option */
-.option {
-    position: relative; /* Make container relative for absolute positioning of ::after */
-    border: 1px solid #8f7070b5;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s, border-color 0.3s;
-    display: flex;
-    align-items: center;
-    overflow: hidden; /* Ensures ::after effect doesn't exceed container bounds */
-}
-
-/* Animation effect */
-.option::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 100%; /* Start off-screen */
-    bottom: 0;
-    right: 0;
-    background-color: #ffcc00; /* Default fill color */
-    transition: left 1s ease; /* Smooth transition for the color sliding */
-    z-index: 1; /* Place ::after below the text */
-}
-
-/* When selected, slide background into view */
-.option.selected::after {
-	background-color: #ffcc00;
-    left: 0; /* Slide background from right to left */
-}
-
-/* Checkbox style */
-.option-checkbox {
-    margin-right: 10px;
-    width: 18px;
-    height: 18px;
-    transition: all 0.3s ease;
-    position: relative;
-    z-index: 2; /* Ensure checkbox is above the ::after effect */
-}
-
-/* Label for the option, e.g., "A)" */
-.option-label {
-    font-weight: bold;
-    margin-right: 8px;
-    position: relative;
-    z-index: 2; /* Ensure label is above the ::after effect */
-}
-
-/* Text for the option */
-.option span {
-    font-size: 16px;
-    position: relative;
-    z-index: 2; /* Ensure text is above the ::after effect */
-}
-
-/* Highlight selected option */
-.option.selected {
-    border-color: #ff7c00;
-}
-
-/* Customize checkbox when option is selected */
-.option.selected .option-checkbox {
-    accent-color: #00796b;
-    transform: translateX(5px);
-}
-
-/* Checkbox checked state */
-.option-checkbox:checked {
-    transition: background-color 0.3s ease, transform 0.3s ease;
-    background-color: #00796b;
-}
-
-/* Option text color when selected */
-.option.selected span {
-    color: #00796b;
-}
+	/* Container for each option */
+	.option {
+	    border: 1px solid #ddd;
+	    border-radius: 5px;
+	    cursor: pointer;
+	    transition: background-color 0.3s, border-color 0.3s;
+	    display: flex;
+	    align-items: center;
+	}
+	
+	/* Animation effect */
+	 
+	/* Container for each option */
+	.option {
+	    position: relative; 
+	    border: 1px solid #8f7070b5;
+	    border-radius: 5px;
+	    cursor: pointer;
+	    transition: background-color 0.3s, border-color 0.3s;
+	    display: flex;
+	    align-items: center;
+	    overflow: hidden; 
+	}
+	
+	/* Animation effect */
+	.option::after {
+	    content: "";
+	    position: absolute;
+	    top: 0;
+	    left: 100%;
+	    bottom: 0;
+	    right: 0;
+	    background-color: #ffcc00;
+	    transition: left 1s ease;
+	    z-index: 1;
+	}
+	
+	/* When selected, slide background into view */
+	.option.selected::after {
+		background-color: #ffcc00;
+	    left: 0;
+	}
+	
+	/* Checkbox style */
+	.option-checkbox {
+	    margin-right: 10px;
+	    width: 18px;
+	    height: 18px;
+	    transition: all 0.3s ease;
+	    position: relative;
+	    z-index: 2;
+	}
+	
+	/* Label for the option, e.g., "A)" */
+	.option-label {
+	    font-weight: bold;
+	    margin-right: 8px;
+	    position: relative;
+	    z-index: 2;
+	}
+	
+	/* Text for the option */
+	.option span {
+	    font-size: 16px;
+	    position: relative;
+	    z-index: 2;
+	}
+	
+	/* Highlight selected option */
+	.option.selected {
+	    border-color: #ff7c00;
+	}
+	
+	/* Customize checkbox when option is selected */
+	.option.selected .option-checkbox {
+	    accent-color: #00796b;
+	    transform: translateX(5px);
+	}
+	
+	/* Checkbox checked state */
+	.option-checkbox:checked {
+	    transition: background-color 0.3s ease, transform 0.3s ease;
+	    background-color: #00796b;
+	}
+	
+	/* Option text color when selected */
+	.option.selected span {
+	    color: #00796b;
+	}
 
 
 

@@ -459,11 +459,15 @@
 		}
 		
 		function splitAndLabel(inputString) {
+			if (!inputString.includes("¶")) {
+		        return inputString.trim(); 
+		    }
+			
 		    const parts = inputString.split("¶");
 
 		    return parts.map((part, index) => {
 		        const label = String.fromCharCode(65 + index);
-		        return `option ${label}: ${part.trim()}`;
+		        return `<b>option ${label}:</b> ${part.trim()}`;
 		    }).join("\n\n"); 
 		}
 

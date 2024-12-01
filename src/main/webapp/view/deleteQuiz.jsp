@@ -375,7 +375,7 @@
         <% if (allQuestion !=null) { 
         	for (int i=0; i < allQuestion.size(); i++) {
         		Quiz quiz=allQuestion.get(i); %>
-        }
+        
         <div class="card" onclick="showQuestionDetails(<%= i + 1 %>)">
             <h3>
                 <%= quiz.getQuestionTitle() %>
