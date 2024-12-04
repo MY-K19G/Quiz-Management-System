@@ -91,5 +91,24 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
      */
 	 @Query("SELECT DISTINCT q.level FROM Quiz q")
 	 List<Level> findDistinctLevels();
+	 
+	 
+	 /**
+	  * Retrieves a list of {@link Quiz} objects based on the provided filter criteria.
+	  * The query dynamically filters the results based on the provided type, level, and category.
+	  * 
+	  * @param type The type of the quiz. If an empty string is provided, this filter is ignored.
+	  * @param level The level of the quiz. If null is provided, this filter is ignored.
+	  * @param category The category of the quiz. If an empty string is provided, this filter is ignored.
+	  * @return A list of {@link Quiz} objects that match the specified filter criteria. 
+	  *         Returns an empty list if no quizzes match.
+	  */
+	 @Query("SELECT q FROM Quiz q " +
+	           "WHERE (:type = '' OR q.type = :type) " +
+	           "AND (:level IS NULL OR q.level = :level) " +
+	           "AND (:category = '' OR q.category = :category)")
+	    List<Quiz> getFilteredQuestions(@Param("type") String type, 
+	                                     @Param("level") Level level, 
+	                                     @Param("category") String category);
 
 }

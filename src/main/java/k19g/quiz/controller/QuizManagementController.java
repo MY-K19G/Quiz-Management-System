@@ -2,22 +2,31 @@ package k19g.quiz.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import jakarta.servlet.http.HttpSession;
-import k19g.quiz.entity.Level;
 import k19g.quiz.entity.Quiz;
 import k19g.quiz.exception.QuizAnswerNotFoundException;
 import k19g.quiz.exception.QuizIdInvalidException;
@@ -325,5 +334,93 @@ public class QuizManagementController {
 		
 		return "validateRegister";
 	}
+	
+	/**
+     * Handles the GET request to display the export page with all available categories,
+     * types, and levels for filtering quiz questions.
+     * 
+     * @return A ModelAndView object representing the "export" page with populated data for categories,
+     *         types, and levels.
+     */
+	@GetMapping("/export")
+	public ModelAndView exportPage() {
+		logger.info("Fetching data for the export page.");
+		ModelAndView mav= new ModelAndView("export");
+
+		try {
+	          mav.addObject("allCategorys", quizService.getAllCategories());
+	          mav.addObject("allTypes", quizService.getAllTypes());
+	          mav.addObject("allLevels", quizService.getAllDistinctLevels());
+
+             logger.info("Successfully populated categories, types, and levels for the export page.");
+	        } catch (Exception e) {
+	            logger.error("Error occurred while fetching data for the export page.", e);
+	        }   	
+		return mav;
+	}
+	
+	/**
+     * Filters quiz based on the provided criteria and returns a downloadable JSON file
+     * containing the filtered questions.
+     * 
+     * @param filters A map containing filter parameters: "type", "level", and "category".
+     * @return ResponseEntity containing the filtered questions in JSON format as a downloadable file.
+     */
+	@PostMapping("/filterQuestions")
+    public ResponseEntity<?> filterQuestions(@RequestBody Map<String, String> filters) {
+		String type = filters.get("type");
+	    String level = filters.get("level");
+	    String category = filters.get("category");
+	    
+	    String filename = Stream.of(level, type, category)
+                .filter(part -> part != null && !part.isEmpty())
+                .collect(Collectors.joining("-"));
+
+	    if (!filename.isEmpty()) {
+	        filename += "-quiz";
+	    } else {
+	        filename = "quiz";
+	    }
+	    
+        System.err.println(filename);
+	    logger.info("Received filters - Type: {}, Level: {}, Category: {}", type, level, category);
+	    
+	    try {
+	    	
+			List<Quiz> filteredQuestions = quizService.getFilteredQuestions(type, level, category);
+			
+		    if (filteredQuestions.isEmpty()) {
+	            logger.warn("No Quiz found for filters - Type: {}, Level: {}, Category: {}", type, level, category);
+		        
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+		                .body("No Quiz found for the provided filters.");
+		    }
+
+	    	 ObjectMapper objectMapper = new ObjectMapper();
+	         String jsonContent = objectMapper.writeValueAsString(filteredQuestions);
+
+	         byte[] contentBytes = jsonContent.getBytes();
+
+	         ByteArrayResource resource = new ByteArrayResource(contentBytes);
+
+	         HttpHeaders headers = new HttpHeaders();
+	         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename="+filename+".json");
+	         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+
+	         logger.info("Filtered questions generated successfully. Returning as downloadable file.");
+	         
+	         return ResponseEntity.ok()
+	                 .headers(headers)
+	                 .contentLength(contentBytes.length)
+	                 .body(resource);
+
+	    } catch (Exception e) {
+            logger.error("Error while generating JSON file for filtered questions.", e);
+	        
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body(null);
+	    }
+	}
+	
 	
 }

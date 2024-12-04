@@ -405,4 +405,31 @@ public class QuizService {
     }
 
 
-}
+    /**
+     * Retrieves a list of filtered quiz questions based on the provided type, level, and category.
+     * 
+     * @param type The type of the quiz (e.g., "Theory", "Programming").
+     * @param level The difficulty level of the quiz (e.g., "Easy", "Medium", "Hard").
+     * @param category The category to filter the quiz questions by (e.g., "Core Java", "Adv Java").
+     * @return A list of filtered quiz questions matching the provided filters.
+     */
+	public List<Quiz> getFilteredQuestions(String type, String level, String category) {
+		
+		 logger.info("Fetching Quiz with type: {}, level: {}, category: {}", type, level, category);
+
+	        Level quizLevel = null;
+	        if (!level.isEmpty()) {
+	            try {
+	                quizLevel = Level.valueOf(level.toUpperCase());
+	            } catch (IllegalArgumentException e) {
+	                logger.error("Invalid level '{}' provided, defaulting to null.", level);
+	            }
+	        }
+	        
+	        List<Quiz> filteredQuestions = quizRepository.getFilteredQuestions(type, quizLevel, category);
+	        
+	        logger.info("Found {} Quiz.", filteredQuestions.size());
+
+	        return filteredQuestions;
+	    }
+	}
