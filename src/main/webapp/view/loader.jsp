@@ -4,6 +4,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+ <link rel="icon" href="/assets/img/java_quiz_icon.jpg" type="image/jpg">    
  <style>
     .background-overlay {
         position: fixed;
