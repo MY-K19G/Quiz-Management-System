@@ -27,7 +27,7 @@ The **Quiz Management System** is a comprehensive web application designed to cr
 
 ### 5. Secure and Efficient Backend
 - Built with **Spring Boot**, ensuring robust and secure API endpoints.
-- Database integration using **Postgresql Database** for development and production.
+- Database integration using **PostgreSQL Database** for development and production.
 - Optimized data models to support a variety of quiz types and settings.
 
 ## Technologies Used
@@ -35,7 +35,8 @@ The **Quiz Management System** is a comprehensive web application designed to cr
 - **Java 8+**
 - **Spring Boot**
 - **Spring Security**
-- **Postgresql Database**
+- **PostgreSQL Database**
+- **Docker**
 
 ### Frontend
 - **JSP (Java Server Pages)** for dynamic content.
@@ -74,9 +75,6 @@ Contributions are welcome! To contribute:
    git push origin feature/your-feature-name
    ```
 5. Open a Pull Request.
-
-## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contact
 For queries or support, contact:
