@@ -53,11 +53,6 @@ The **Quiz Management System** is a comprehensive web application designed to cr
 - **IDE**: IntelliJ IDEA or Eclipse
 - **Version Control**: GitHub
 
-## Getting Started
-### Prerequisites
-- **Java 8** or later
-- **Maven**
-- **Git**
 
 ## Contributing
 Contributions are welcome! To contribute:
