@@ -53,24 +53,6 @@ The **Quiz Management System** is a comprehensive web application designed to cr
 - **IDE**: IntelliJ IDEA or Eclipse
 - **Version Control**: GitHub
 
-
-## Contributing
-Contributions are welcome! To contribute:
-1. Fork the repository.
-2. Create a new branch:
-   ```
-   git checkout -b feature/your-feature-name
-   ```
-3. Make your changes and commit them:
-   ```
-   git commit -m "Add your feature description"
-   ```
-4. Push to your branch:
-   ```
-   git push origin feature/your-feature-name
-   ```
-5. Open a Pull Request.
-
 ## Contact
 For queries or support, contact:
 - **Author**: K19G
