@@ -53,6 +53,11 @@ The **Quiz Management System** is a comprehensive web application designed to cr
 - **IDE**: IntelliJ IDEA or Eclipse
 - **Version Control**: GitHub
 
+## Contribuation
+Interested in making contributions to this project? Please review the guides below.
+[Contributing Guidelines](https://github.com/MY-K19G/Quiz-Management-System/blob/main/CONTRIBUTING.md)
+
+
 ## Contact
 For queries or support, contact:
 - **Author**: K19G
